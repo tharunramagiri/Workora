@@ -132,7 +132,7 @@ const LANDING_COPY = {
       issues: "Issues",
       copyright: "© 2026 Workora",
       built: "Built to be self-hosted.",
-      devCredit: "Built by Ramagiri Tharun",
+      devCredit: "Built by",
       devSite: "https://ramagiritharun.in",
       devLinkedIn: "https://www.linkedin.com/in/ramagiritharun/",
     },
