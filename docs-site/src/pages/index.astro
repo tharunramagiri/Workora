@@ -569,7 +569,8 @@ npm run daemon</code></pre>
       const initialLang = openedLegacyChineseHash ? "zh" : readStoredLanguage() || "en";
       applyLanguage(initialLang);
 
-      document.querySelector("[        const next = document.documentElement.lang === "zh-CN" ? "en" : "zh";
+      document.querySelector("[data-lang-toggle]")?.addEventListener("click", () => {
+        const next = document.documentElement.lang === "zh-CN" ? "en" : "zh";
         applyLanguage(next);
       });
 
