@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useStore } from "../store.tsx";
+import { IconProject } from "../icons.tsx";
+import { PaneEmpty } from "../PaneEmpty.tsx";
 
 type Project = {
   id: string;
@@ -17,24 +19,22 @@ type Project = {
   createdAt: string;
 };
 
-type Machine = { id: string; name: string; status: string };
-type Agent = { id: string; name: string; status: string };
-
 export function Projects() {
   const { t } = useTranslation();
-  const { api, slug, machines, agents } = useStore();
+  const { api, slug, machines } = useStore();
   const nav = useNavigate();
 
   const [projects, setProjects] = useState<Project[] | null>(null);
+  const [selected, setSelected] = useState<Project | null>(null);
   const [repoUrl, setRepoUrl] = useState("");
   const [name, setName] = useState("");
   const [machineId, setMachineId] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [syncing, setSyncing] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const [pushBranch, setPushBranch] = useState("");
   const [pushMsg, setPushMsg] = useState("workora: agent changes");
-  const [pushing, setPushing] = useState<string | null>(null);
+  const [pushing, setPushing] = useState(false);
 
   const onlineMachines = machines.filter((m) => m.status === "online");
 
@@ -49,6 +49,11 @@ export function Projects() {
   }, [api]);
 
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    if (projects && !projects.find((p) => p.id === selected?.id)) setSelected(projects[0] ?? null);
+  }, [projects]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const cur = selected;
 
   const importRepo = async () => {
     setErr("");
@@ -64,102 +69,101 @@ export function Projects() {
     finally { setBusy(false); }
   };
 
-  const sync = async (p: Project) => {
-    setSyncing(p.id);
-    try { await api("POST", `/api/projects/${p.id}/sync`, {}); } catch { /* ignore */ }
+  const sync = async () => {
+    if (!cur) return;
+    setSyncing(true);
+    try { await api("POST", `/api/projects/${cur.id}/sync`, {}); } catch { /* ignore */ }
     await load();
-    setSyncing(null);
+    setSyncing(false);
   };
 
-  const doPush = async (p: Project) => {
-    setPushing(p.id);
+  const doPush = async () => {
+    if (!cur) return;
+    setPushing(true);
     try {
-      const branch = pushBranch.trim() || `workora/${p.name}/agent`;
-      await api("POST", `/api/projects/${p.id}/push`, { branch, message: pushMsg.trim() });
-      // Phase 3: auto-create the #<repo>-<branch> channel so patches/review live with the branch.
-      try { await api("POST", `/api/projects/${p.id}/branch-channel`, { branch }); } catch { /* non-fatal */ }
+      const branch = pushBranch.trim() || `workora/${cur.name}/agent`;
+      await api("POST", `/api/projects/${cur.id}/push`, { branch, message: pushMsg.trim() });
+      try { await api("POST", `/api/projects/${cur.id}/branch-channel`, { branch }); } catch { /* non-fatal */ }
       setPushBranch(""); setPushMsg("workora: agent changes");
     } catch { /* ignore */ }
     await load();
-    setPushing(null);
+    setPushing(false);
   };
 
-  const remove = async (p: Project) => {
-    try { await api("DELETE", `/api/projects/${p.id}`); } catch { /* ignore */ }
+  const remove = async () => {
+    if (!cur) return;
+    try { await api("DELETE", `/api/projects/${cur.id}`); } catch { /* ignore */ }
     await load();
   };
 
-  const activeAgents = agents.filter((a) => a.status === "active");
+  const statusLabel = (p: Project) => p.status === "ready" ? t("projects.ready") : p.status === "cloning" ? t("projects.cloning") : p.status;
 
   return (
-    <div className="page">
-      <div className="page-head">
-        <h1>{t("projects.title")}</h1>
-        <p className="page-sub">{t("projects.subtitle")}</p>
-      </div>
-
-      <div className="project-import card">
-        <h3>{t("projects.importRepo")}</h3>
-        <div className="project-import-row">
-          <input className="inp" placeholder={t("projects.repoUrl")} value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} />
-          <input className="inp" placeholder={t("projects.nameOptional")} value={name} onChange={(e) => setName(e.target.value)} />
-          <select className="inp" value={machineId} onChange={(e) => setMachineId(e.target.value)}>
-            <option value="">{t("projects.chooseMachine")}</option>
-            {onlineMachines.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-          </select>
-          <button className="ok" disabled={busy || onlineMachines.length === 0} onClick={() => void importRepo()}>{busy ? t("projects.importing") : t("projects.import")}</button>
+    <>
+      <aside className="sidebar">
+        <div className="sb-scroll">
+        <div className="sb-title">{t("nav.projects")}</div>
+        <div className="sec">{t("projects.importRepo")} <span className="cnt">{projects?.length ?? 0}</span></div>
+        {projects?.length ? projects.map((p) => (
+          <button key={p.id} className={"item" + (p.id === cur?.id ? " active" : "")} onClick={() => setSelected(p)}>
+            <IconProject size={15} /><span className="grow">{p.name}</span><span className={"dot " + (p.status === "ready" ? "online" : p.status === "cloning" ? "" : "")} />
+          </button>
+        )) : <div className="empty">{t("projects.empty")}</div>}
         </div>
-        {onlineMachines.length === 0 && <p className="form-err">{t("projects.noMachines")}</p>}
-        {err && <p className="form-err">{err}</p>}
-      </div>
-
-      {projects === null ? <p className="muted">…</p> : projects.length === 0 ? (
-        <div className="card pane-empty"><div>{t("projects.empty")}</div></div>
-      ) : (
-        <div className="project-list">
-          {projects.map((p) => (
-            <div key={p.id} className="project-row card">
-              <div className="project-main">
-                <div className="project-name">
-                  <strong>{p.name}</strong>
-                  <span className={"badge " + (p.status === "ready" ? "badge-ok" : p.status === "cloning" ? "badge-warn" : "badge-err")}>
-                    {p.status === "ready" ? t("projects.ready") : p.status === "cloning" ? t("projects.cloning") : p.status}
-                  </span>
-                </div>
-                <div className="project-url">{p.repoUrl}</div>
-                <div className="project-meta">
-                  <span>{t("projects.branch")}: <code>{p.defaultBranch}</code></span>
-                  {p.lastCommit && <span>{t("projects.lastCommit")}: <code>{p.lastCommit}</code></span>}
-                  <span>{t("projects.clonePath")}: <code>{p.clonePath}</code></span>
-                </div>
-                {p.lastError && <div className="form-err">{t("projects.error")}: {p.lastError}</div>}
-              </div>
-              <div className="project-actions">
-                {p.channelId && <button className="btn" onClick={() => nav(`/s/${slug}/channel/${p.channelId}`)}>{t("projects.openChannel")}</button>}
-                <button className="btn" disabled={syncing === p.id} onClick={() => void sync(p)}>{syncing === p.id ? "…" : t("projects.sync")}</button>
-                <div className="project-push">
-                  <input className="inp inp-sm" placeholder="branch" value={pushBranch} onChange={(e) => setPushBranch(e.target.value)} />
-                  <input className="inp inp-sm" placeholder={t("projects.pushMessage")} value={pushMsg} onChange={(e) => setPushMsg(e.target.value)} />
-                  <button className="ok" disabled={pushing === p.id} onClick={() => void doPush(p)}>{pushing === p.id ? "…" : t("projects.push")}</button>
-                </div>
-                <button className="btn danger" onClick={() => void remove(p)}>{t("projects.remove")}</button>
-              </div>
+      </aside>
+      <main className="content-col">
+        <div className="head">
+          <h1>{cur ? cur.name : t("nav.projects")}</h1>
+          <small>{cur ? `${cur.repoUrl} · ${statusLabel(cur)}` : t("projects.subtitle")}</small>
+          {cur && (
+            <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+              {cur.channelId && <button className="action-btn" onClick={() => nav(`/s/${slug}/channel/${cur.channelId}`)}>{t("projects.openChannel")}</button>}
+              <button className="action-btn" disabled={syncing} onClick={() => void sync()}>{syncing ? "…" : t("projects.sync")}</button>
+              <button className="danger-btn" onClick={() => void remove()}>{t("projects.remove")}</button>
             </div>
-          ))}
+          )}
         </div>
-      )}
-
-      {activeAgents.length > 0 && (
-        <div className="card project-agents">
-          <h4>{t("projects.assignAgent")}</h4>
-          <p className="muted">{t("projects.assignAgentHint")}</p>
-          <div className="project-agent-chips">
-            {activeAgents.map((a) => (
-              <span key={a.id} className="chip">{a.name} · {a.status}</span>
-            ))}
-          </div>
+        <div className="scroll">
+          {!cur ? (
+            <>
+              <div className="card" style={{ marginBottom: 14 }}>
+                <h3>{t("projects.importRepo")}</h3>
+                <div className="project-import-row" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <input className="inp" style={{ flex: "2 1 260px" }} placeholder={t("projects.repoUrl")} value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} />
+                  <input className="inp" style={{ flex: "1 1 140px" }} placeholder={t("projects.nameOptional")} value={name} onChange={(e) => setName(e.target.value)} />
+                  <select className="inp" style={{ flex: "1 1 140px" }} value={machineId} onChange={(e) => setMachineId(e.target.value)}>
+                    <option value="">{t("projects.chooseMachine")}</option>
+                    {onlineMachines.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                  <button className="ok" disabled={busy || onlineMachines.length === 0} onClick={() => void importRepo()}>{busy ? t("projects.importing") : t("projects.import")}</button>
+                </div>
+                {onlineMachines.length === 0 && <p className="form-err">{t("projects.noMachines")}</p>}
+                {err && <p className="form-err">{err}</p>}
+              </div>
+              <PaneEmpty icon={<IconProject size={30} />} title={t("projects.empty")} sub={t("projects.subtitle")} />
+            </>
+          ) : (
+            <>
+              {err && <div className="form-err" style={{ marginBottom: 14 }}>{err}</div>}
+              <div className="card" style={{ marginBottom: 14 }}>
+                <div className="kv"><b>{t("projects.branch")}</b> {cur.defaultBranch}</div>
+                <div className="kv"><b>{t("projects.clonePath")}</b> <code>{cur.clonePath}</code></div>
+                {cur.lastCommit && <div className="kv"><b>{t("projects.lastCommit")}</b> <code>{cur.lastCommit}</code></div>}
+                {cur.lastError && <div className="form-err">{t("projects.error")}: {cur.lastError}</div>}
+              </div>
+              <div className="card">
+                <h3>{t("projects.push")}</h3>
+                <div className="project-import-row" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <input className="inp" style={{ flex: "1 1 160px" }} placeholder={t("projects.pushBranch")} value={pushBranch} onChange={(e) => setPushBranch(e.target.value)} />
+                  <input className="inp" style={{ flex: "2 1 220px" }} placeholder={t("projects.pushMessage")} value={pushMsg} onChange={(e) => setPushMsg(e.target.value)} />
+                  <button className="ok" disabled={pushing} onClick={() => void doPush()}>{pushing ? "…" : t("projects.push")}</button>
+                </div>
+                <p className="muted" style={{ marginTop: 8 }}>{t("projects.assignAgentHint")}</p>
+              </div>
+            </>
+          )}
         </div>
-      )}
-    </div>
+      </main>
+    </>
   );
 }
