@@ -46,7 +46,17 @@ services:
     image: workora-app:latest
     container_name: workora-app
     profiles: ["app"]
-    env_file: [.env.docker]            # copy .env.docker.example → .env.docker and fill the secrets first
+    # Env comes from the compose `.env` file (Dokploy writes UI env vars there), interpolated
+    # below. Secrets are REQUIRED — the server refuses to start without JWT_SECRET and
+    # DAEMON_BOOTSTRAP_KEY. Defaults match the compose services for a zero-config local start.
+    environment:
+      PORT: ${APP_PORT:-7788}
+      DATABASE_URL: ${DATABASE_URL:-postgres://opentag:opentag@postgres:5432/opentag}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      DAEMON_BOOTSTRAP_KEY: ${DAEMON_BOOTSTRAP_KEY:?set DAEMON_BOOTSTRAP_KEY in .env}
+      ADMIN_SETUP_TOKEN: ${ADMIN_SETUP_TOKEN:-}
+      ALLOW_DEV_LOGIN: ${ALLOW_DEV_LOGIN:-false}
     ports: ["${APP_PORT:-7788}:7788"]
     depends_on:
       postgres: { condition: service_healthy }

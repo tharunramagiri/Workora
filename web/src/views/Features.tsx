@@ -90,7 +90,7 @@ export const COPY: Record<Lang, FeatureCopy> = {
       docs: "Docs",
       github: "GitHub",
       enter: "Enter workspace",
-      ,
+      languageLabel: "Language",
     },
     hero: {
       eyebrow: "Feature showcase",
@@ -372,7 +372,13 @@ export function Features() {
         }}
         githubLabel={copy.nav.github}
         enterLabel={copy.nav.enter}
-        onEnterWorkspace={enterWorkspace}      />
+        onEnterWorkspace={enterWorkspace}
+        languageToggle={{
+          label: copy.nav.languageLabel,
+          text: lang === "en" ? "中文" : "EN",
+          onClick: switchLanguage,
+        }}
+      />
 
       <section className="lp-feature-hero">
         <div className="lp-container lp-feature-hero__grid">

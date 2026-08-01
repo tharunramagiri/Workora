@@ -132,7 +132,7 @@ const LANDING_COPY = {
       issues: "Issues",
       copyright: "© 2026 Workora",
       built: "Built to be self-hosted.",
-      devCredit: "Built by the Workora team · hello@workora.dev",
+      devCredit: "Built by Ramagiri Tharun (@ramagiritharun) · ramagiritharun@gmail.com",
     },
   },
 } satisfies Record<Lang, any>;
@@ -256,7 +256,7 @@ export function Landing() {
         onEnterWorkspace={enterWorkspace}
         languageToggle={{
           label: copy.nav.languageLabel,
-          text: "EN",
+          text: lang === "en" ? "中文" : "EN",
           onClick: switchLanguage,
         }}
       />
@@ -442,7 +442,7 @@ export function Landing() {
           </div>
           <div className="lp-footer__base">
             <span>{copy.footer.copyright}</span>
-            <span>Built by the Workora team.</span>
+            <span>{copy.footer.built}</span>
             <span className="lp-footer__dev">{copy.footer.devCredit}</span>
           </div>
         </div>
