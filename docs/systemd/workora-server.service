@@ -1,0 +1,58 @@
+# workora control-plane server — systemd unit
+#
+# SETUP (run as root or with sudo):
+#   1. Edit the [Service] section below:
+#      - Replace /opt/workora with the actual checkout path
+#      - Replace ubuntu:ubuntu with the actual user:group running the server
+#   2. Copy to systemd:
+#        sudo cp docs/systemd/workora-server.service /etc/systemd/system/workora-server.service
+#   3. Enable and start:
+#        sudo systemctl daemon-reload
+#        sudo systemctl enable --now workora-server
+#   4. Check status:
+#        sudo systemctl status workora-server
+#        journalctl -u workora-server -f
+#
+# Prerequisites: Node.js 20+ on PATH, .env.prod configured, web/dist built.
+# See docs/self-host.md "Bare Node.js (advanced)" for the full procedure.
+#
+# NOTE on nvm / PATH: systemd runs with a minimal PATH that may not include nvm-managed
+# Node.js. If npx is not found, use the full absolute path (e.g.
+# /home/ubuntu/.nvm/versions/node/v22.x.x/bin/npx) or add an Environment=PATH= line.
+# See docs/self-host.md "Start with systemd" for the full explanation.
+
+[Unit]
+Description=workora control-plane server
+Documentation=https://github.com/tharunramagiri/Workora
+After=network.target postgresql.service redis.service
+Wants=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/workora
+
+# Load .env.prod before starting (Node's native loadEnvFile reads the file
+# set in ENV_FILE; the ExecStartPre step migrates the DB schema first).
+Environment=ENV_FILE=.env.prod
+Environment=NODE_ENV=production
+
+# Migrate schema before starting the server (additive-safe; fails loud on
+# destructive changes, which will prevent the server from starting — intentional).
+ExecStartPre=/usr/bin/env bash -c \
+  "set -a; . /opt/workora/.env.prod; set +a; npx drizzle-kit push"
+
+ExecStart=/usr/bin/env npx tsx src/server/index.ts
+
+Restart=on-failure
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=workora-server
+
+# Graceful shutdown: allow up to 30s for in-flight requests.
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
