@@ -1,9 +1,9 @@
 export const GITHUB_URL = "https://github.com/tharunramagiri/Workora";
-export const MARKETING_SITE_URL = "https://getworkora.com";
-export const DOCS_SITE_URL = "https://docs.getworkora.com/";
+export const MARKETING_SITE_URL = "https://office.ramagiritharun.in";
+export const DOCS_SITE_URL = "https://office.ramagiritharun.in/docs/";
 export const PUBLIC_BRAND_MARK_SRC = "/favicon.svg";
 
-export const MARKETING_ORIGINS = new Set([MARKETING_SITE_URL, "https://www.getworkora.com"]);
+export const MARKETING_ORIGINS = new Set([MARKETING_SITE_URL, "https://office.ramagiritharun.in"]);
 
 export type PublicNavLinkKey = "features" | "capabilities" | "engines" | "selfHosted" | "docs";
 
