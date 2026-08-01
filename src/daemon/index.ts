@@ -14,6 +14,7 @@ import { createLogger } from "../log.js";
 import { machineIdFile } from "../paths.js";
 import { AGENT_CONTROL_ACK_CAPABILITY, DELIVERY_ADMISSION_CAPABILITY, PROJECT_BROWSER_CAPABILITY, PROJECT_DIRECTORY_CAPABILITY } from "../daemonProtocol.js";
 import { browseProjectDirectories, ProjectDirectoryError, resolveProjectDirectory } from "./projectDirectory.js";
+import { cloneRepo, repoStatus, pullRepo, commitAndPush, ensureProjectsRootDir } from "./gitOps.js";
 
 const log = createLogger("daemon");
 const DELIVERY_PENDING_HEARTBEAT_MS = Math.max(250, Number(process.env.OPEN_WORKORA_DELIVERY_PENDING_HEARTBEAT_MS ?? 750));
@@ -130,6 +131,27 @@ conn = new Connection(serverUrl, apiKey, (msg) => {
     case "project:browse": void browseProjectDirectories({ path: msg.path, discover: msg.discover === true, cursor: msg.cursor, limit: msg.limit }).then(
       (result) => conn.send({ type: "project:directories", requestId: msg.requestId, ...result }),
       (cause) => conn.send({ type: "project:directories", requestId: msg.requestId, error: String(cause instanceof Error ? cause.message : cause), code: cause instanceof ProjectDirectoryError ? cause.code : "invalid_project_path" }),
+    ); break;
+    // Git project ops (Phase 1: "paste a repo, get a coding agent")
+    case "git:clone": void cloneRepo({ repoUrl: String(msg.repoUrl ?? ""), branch: typeof msg.branch === "string" ? msg.branch : undefined, path: typeof msg.path === "string" ? msg.path : undefined, shallow: msg.shallow !== false }).then(
+      (result) => conn.send({ type: "git:cloned", requestId: msg.requestId, ...result }),
+      (cause) => conn.send({ type: "git:cloned", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) }),
+    ); break;
+    case "git:status": void repoStatus(String(msg.clonePath ?? "")).then(
+      (result) => conn.send({ type: "git:status", requestId: msg.requestId, ...result }),
+      (cause) => conn.send({ type: "git:status", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) }),
+    ); break;
+    case "git:pull": void pullRepo(String(msg.clonePath ?? ""), typeof msg.branch === "string" ? msg.branch : undefined).then(
+      (result) => conn.send({ type: "git:pulled", requestId: msg.requestId, ...result }),
+      (cause) => conn.send({ type: "git:pulled", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) }),
+    ); break;
+    case "git:push": void commitAndPush(String(msg.clonePath ?? ""), String(msg.branch ?? "workora/agent-changes"), String(msg.message ?? "workora: agent changes"), typeof msg.author === "string" ? msg.author : undefined).then(
+      (result) => conn.send({ type: "git:pushed", requestId: msg.requestId, ...result }),
+      (cause) => conn.send({ type: "git:pushed", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) }),
+    ); break;
+    case "git:projects-root": void ensureProjectsRootDir().then(
+      (root) => conn.send({ type: "git:projects-root", requestId: msg.requestId, root }),
+      (cause) => conn.send({ type: "git:projects-root", requestId: msg.requestId, error: String(cause instanceof Error ? cause.message : cause) }),
     ); break;
     case "probe-models": void listModels(msg.runtime ?? "").then((models) => conn.send({ type: "models", requestId: msg.requestId, runtime: msg.runtime, models })).catch((e) => conn.send({ type: "models", requestId: msg.requestId, runtime: msg.runtime, models: null, error: String((e as any)?.message ?? e) })); break;
     case "agent:resource-budget": conn.send({ type: "agent:resource-budget", requestId: msg.requestId, ...mgr.budgetStatus() }); break;

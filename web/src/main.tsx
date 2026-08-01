@@ -10,6 +10,7 @@ import { Chat } from "./views/Chat.tsx";
 import { Showcase } from "./views/Showcase.tsx";
 import { Members } from "./views/Members.tsx";
 import { Tasks, Computers, Search, Settings, Inbox, Saved } from "./views/misc.tsx";
+import { Projects } from "./views/Projects.tsx";
 import { AuthPage, JoinPage } from "./views/Auth.tsx";
 import { Landing } from "./views/Landing.tsx";
 import { Features } from "./views/Features.tsx";
@@ -86,6 +87,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="tasks/:channelId" element={<Tasks />} />
             <Route path="computer" element={<Computers />} />
             <Route path="computer/:machineId" element={<Computers />} />
+            <Route path="project" element={<Projects />} />
             <Route path="search" element={<Search />} />
             <Route path="settings" element={<Settings />} />
             <Route path="settings/:section" element={<Settings />} />

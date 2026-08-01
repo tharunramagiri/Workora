@@ -118,6 +118,30 @@ export const channelMembers = pgTable("channel_members", {
   threadDoneAt: timestamp("thread_done_at", { withTimezone: true }), // per-user thread done mark (thread done → removed from inbox). Always null for non-thread channels
 }, (t) => ({ pk: primaryKey({ columns: [t.channelId, t.memberType, t.memberId] }) }));
 
+// ── Project (git repo imported from GitHub / any git URL) ─────────────
+// A project is a cloned repo on a machine's filesystem, bound to a server. Agents can be
+// assigned to it (agent.projectPath points into the clone) and push work back to the
+// upstream via git. Phase 1 of the "paste a repo, get a coding agent" product.
+export const projects = pgTable("projects", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  serverId: uuid("server_id").notNull().references(() => servers.id),
+  machineId: uuid("machine_id").notNull().references(() => machines.id), // which daemon host owns the clone
+  createdByUserId: uuid("created_by_user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),                 // display name (repo slug, e.g. "tharunramagiri-Workora")
+  repoUrl: text("repo_url").notNull(),          // git URL (https://github.com/... or git@github.com:...)
+  clonePath: text("clone_path").notNull(),      // absolute path on the machine (e.g. /opt/projects/tharunramagiri-Workora)
+  defaultBranch: text("default_branch").default("main").notNull(),
+  channelId: uuid("channel_id").references(() => channels.id), // per-project channel (#<repo>-eng)
+  status: text("status").default("cloning").notNull(), // cloning | ready | error | removed
+  lastError: text("last_error"),
+  lastCommit: text("last_commit"),              // HEAD short sha after last sync
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  byServer: index("projects_server_idx").on(t.serverId),
+  uniqRepo: uniqueIndex("projects_server_repo_uniq").on(t.serverId, t.repoUrl),
+}));
+
 // A Conversation Turn groups a short burst from one sender in one concrete channel context.
 // Visibility remains message-level; dispatch/ownership is claimed once per durable turn.
 export const conversationTurns = pgTable("conversation_turns", {

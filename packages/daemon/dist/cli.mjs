@@ -3720,8 +3720,8 @@ var require_windows = __commonJS({
   "node_modules/isexe/windows.js"(exports, module) {
     module.exports = isexe;
     isexe.sync = sync;
-    var fs5 = __require("fs");
-    function checkPathExt(path19, options) {
+    var fs6 = __require("fs");
+    function checkPathExt(path21, options) {
       var pathext = options.pathExt !== void 0 ? options.pathExt : process.env.PATHEXT;
       if (!pathext) {
         return true;
@@ -3732,25 +3732,25 @@ var require_windows = __commonJS({
       }
       for (var i = 0; i < pathext.length; i++) {
         var p = pathext[i].toLowerCase();
-        if (p && path19.substr(-p.length).toLowerCase() === p) {
+        if (p && path21.substr(-p.length).toLowerCase() === p) {
           return true;
         }
       }
       return false;
     }
-    function checkStat(stat3, path19, options) {
+    function checkStat(stat3, path21, options) {
       if (!stat3.isSymbolicLink() && !stat3.isFile()) {
         return false;
       }
-      return checkPathExt(path19, options);
+      return checkPathExt(path21, options);
     }
-    function isexe(path19, options, cb) {
-      fs5.stat(path19, function(er, stat3) {
-        cb(er, er ? false : checkStat(stat3, path19, options));
+    function isexe(path21, options, cb) {
+      fs6.stat(path21, function(er, stat3) {
+        cb(er, er ? false : checkStat(stat3, path21, options));
       });
     }
-    function sync(path19, options) {
-      return checkStat(fs5.statSync(path19), path19, options);
+    function sync(path21, options) {
+      return checkStat(fs6.statSync(path21), path21, options);
     }
   }
 });
@@ -3760,14 +3760,14 @@ var require_mode = __commonJS({
   "node_modules/isexe/mode.js"(exports, module) {
     module.exports = isexe;
     isexe.sync = sync;
-    var fs5 = __require("fs");
-    function isexe(path19, options, cb) {
-      fs5.stat(path19, function(er, stat3) {
+    var fs6 = __require("fs");
+    function isexe(path21, options, cb) {
+      fs6.stat(path21, function(er, stat3) {
         cb(er, er ? false : checkStat(stat3, options));
       });
     }
-    function sync(path19, options) {
-      return checkStat(fs5.statSync(path19), options);
+    function sync(path21, options) {
+      return checkStat(fs6.statSync(path21), options);
     }
     function checkStat(stat3, options) {
       return stat3.isFile() && checkMode(stat3, options);
@@ -3791,7 +3791,7 @@ var require_mode = __commonJS({
 // node_modules/isexe/index.js
 var require_isexe = __commonJS({
   "node_modules/isexe/index.js"(exports, module) {
-    var fs5 = __require("fs");
+    var fs6 = __require("fs");
     var core;
     if (process.platform === "win32" || global.TESTING_WINDOWS) {
       core = require_windows();
@@ -3800,7 +3800,7 @@ var require_isexe = __commonJS({
     }
     module.exports = isexe;
     isexe.sync = sync;
-    function isexe(path19, options, cb) {
+    function isexe(path21, options, cb) {
       if (typeof options === "function") {
         cb = options;
         options = {};
@@ -3810,7 +3810,7 @@ var require_isexe = __commonJS({
           throw new TypeError("callback not provided");
         }
         return new Promise(function(resolve, reject) {
-          isexe(path19, options || {}, function(er, is) {
+          isexe(path21, options || {}, function(er, is) {
             if (er) {
               reject(er);
             } else {
@@ -3819,7 +3819,7 @@ var require_isexe = __commonJS({
           });
         });
       }
-      core(path19, options || {}, function(er, is) {
+      core(path21, options || {}, function(er, is) {
         if (er) {
           if (er.code === "EACCES" || options && options.ignoreErrors) {
             er = null;
@@ -3829,9 +3829,9 @@ var require_isexe = __commonJS({
         cb(er, is);
       });
     }
-    function sync(path19, options) {
+    function sync(path21, options) {
       try {
-        return core.sync(path19, options || {});
+        return core.sync(path21, options || {});
       } catch (er) {
         if (options && options.ignoreErrors || er.code === "EACCES") {
           return false;
@@ -3847,7 +3847,7 @@ var require_isexe = __commonJS({
 var require_which = __commonJS({
   "node_modules/which/which.js"(exports, module) {
     var isWindows = process.platform === "win32" || process.env.OSTYPE === "cygwin" || process.env.OSTYPE === "msys";
-    var path19 = __require("path");
+    var path21 = __require("path");
     var COLON = isWindows ? ";" : ":";
     var isexe = require_isexe();
     var getNotFoundError = (cmd) => Object.assign(new Error(`not found: ${cmd}`), { code: "ENOENT" });
@@ -3885,7 +3885,7 @@ var require_which = __commonJS({
           return opt.all && found.length ? resolve(found) : reject(getNotFoundError(cmd));
         const ppRaw = pathEnv[i];
         const pathPart = /^".*"$/.test(ppRaw) ? ppRaw.slice(1, -1) : ppRaw;
-        const pCmd = path19.join(pathPart, cmd);
+        const pCmd = path21.join(pathPart, cmd);
         const p = !pathPart && /^\.[\\\/]/.test(cmd) ? cmd.slice(0, 2) + pCmd : pCmd;
         resolve(subStep(p, i, 0));
       });
@@ -3912,7 +3912,7 @@ var require_which = __commonJS({
       for (let i = 0; i < pathEnv.length; i++) {
         const ppRaw = pathEnv[i];
         const pathPart = /^".*"$/.test(ppRaw) ? ppRaw.slice(1, -1) : ppRaw;
-        const pCmd = path19.join(pathPart, cmd);
+        const pCmd = path21.join(pathPart, cmd);
         const p = !pathPart && /^\.[\\\/]/.test(cmd) ? cmd.slice(0, 2) + pCmd : pCmd;
         for (let j = 0; j < pathExt.length; j++) {
           const cur = p + pathExt[j];
@@ -3960,7 +3960,7 @@ var require_path_key = __commonJS({
 var require_resolveCommand = __commonJS({
   "node_modules/cross-spawn/lib/util/resolveCommand.js"(exports, module) {
     "use strict";
-    var path19 = __require("path");
+    var path21 = __require("path");
     var which = require_which();
     var getPathKey = require_path_key();
     function resolveCommandAttempt(parsed, withoutPathExt) {
@@ -3978,7 +3978,7 @@ var require_resolveCommand = __commonJS({
       try {
         resolved = which.sync(parsed.command, {
           path: env[getPathKey({ env })],
-          pathExt: withoutPathExt ? path19.delimiter : void 0
+          pathExt: withoutPathExt ? path21.delimiter : void 0
         });
       } catch (e) {
       } finally {
@@ -3987,7 +3987,7 @@ var require_resolveCommand = __commonJS({
         }
       }
       if (resolved) {
-        resolved = path19.resolve(hasCustomCwd ? parsed.options.cwd : "", resolved);
+        resolved = path21.resolve(hasCustomCwd ? parsed.options.cwd : "", resolved);
       }
       return resolved;
     }
@@ -4041,8 +4041,8 @@ var require_shebang_command = __commonJS({
       if (!match) {
         return null;
       }
-      const [path19, argument] = match[0].replace(/#! ?/, "").split(" ");
-      const binary = path19.split("/").pop();
+      const [path21, argument] = match[0].replace(/#! ?/, "").split(" ");
+      const binary = path21.split("/").pop();
       if (binary === "env") {
         return argument;
       }
@@ -4055,16 +4055,16 @@ var require_shebang_command = __commonJS({
 var require_readShebang = __commonJS({
   "node_modules/cross-spawn/lib/util/readShebang.js"(exports, module) {
     "use strict";
-    var fs5 = __require("fs");
+    var fs6 = __require("fs");
     var shebangCommand = require_shebang_command();
     function readShebang(command) {
       const size = 150;
       const buffer = Buffer.alloc(size);
       let fd;
       try {
-        fd = fs5.openSync(command, "r");
-        fs5.readSync(fd, buffer, 0, size, 0);
-        fs5.closeSync(fd);
+        fd = fs6.openSync(command, "r");
+        fs6.readSync(fd, buffer, 0, size, 0);
+        fs6.closeSync(fd);
       } catch (e) {
       }
       return shebangCommand(buffer.toString());
@@ -4077,7 +4077,7 @@ var require_readShebang = __commonJS({
 var require_parse = __commonJS({
   "node_modules/cross-spawn/lib/parse.js"(exports, module) {
     "use strict";
-    var path19 = __require("path");
+    var path21 = __require("path");
     var resolveCommand = require_resolveCommand();
     var escape = require_escape();
     var readShebang = require_readShebang();
@@ -4102,7 +4102,7 @@ var require_parse = __commonJS({
       const needsShell = !isExecutableRegExp.test(commandFile);
       if (parsed.options.forceShell || needsShell) {
         const needsDoubleEscapeMetaChars = isCmdShimRegExp.test(commandFile);
-        parsed.command = path19.normalize(parsed.command);
+        parsed.command = path21.normalize(parsed.command);
         parsed.command = escape.command(parsed.command);
         parsed.args = parsed.args.map((arg) => escape.argument(arg, needsDoubleEscapeMetaChars));
         const shellCommand = [parsed.command].concat(parsed.args).join(" ");
@@ -4220,9 +4220,9 @@ try {
 }
 
 // src/daemon/index.ts
-import os6 from "node:os";
-import fs4 from "node:fs";
-import path18 from "node:path";
+import os7 from "node:os";
+import fs5 from "node:fs";
+import path20 from "node:path";
 
 // node_modules/ws/wrapper.mjs
 var import_stream = __toESM(require_stream(), 1);
@@ -7933,7 +7933,8 @@ var AgentManager = class {
       PATH: `${this.binDir}${path15.delimiter}${process.env.PATH ?? ""}`,
       OPEN_WORKORA_SERVER_URL: config.serverUrl,
       OPEN_WORKORA_AGENT_ID: agentId,
-      OPEN_WORKORA_AGENT_TOKEN: config.agentToken ?? ""
+      OPEN_WORKORA_AGENT_TOKEN: config.agentToken ?? "",
+      OPEN_WORKORA_PROJECT_PATH: projectDir !== stateDir ? projectDir : ""
     };
     delete env.CLAUDECODE;
     delete env.CLAUDE_CODE_ENTRYPOINT;
@@ -8745,6 +8746,125 @@ async function listModels(runtime) {
   }
 }
 
+// src/daemon/gitOps.ts
+import { execFile } from "node:child_process";
+import { promises as fs4 } from "node:fs";
+import os6 from "node:os";
+import path19 from "node:path";
+import { promisify } from "node:util";
+
+// src/daemon/gitRoots.ts
+import path18 from "node:path";
+function parseRoots(raw = process.env.OPEN_WORKORA_PROJECT_ROOTS) {
+  const value = raw?.trim();
+  if (!value) return [];
+  let inputs;
+  if (value.startsWith("[")) {
+    try {
+      inputs = JSON.parse(value);
+    } catch {
+      return [];
+    }
+    if (!Array.isArray(inputs)) return [];
+    inputs = inputs.filter((item) => typeof item === "string");
+  } else {
+    inputs = value.split(path18.delimiter);
+  }
+  return [...new Set(inputs.map((item) => item.trim()).filter(Boolean))];
+}
+var PROJECT_ROOTS = parseRoots();
+
+// src/daemon/gitOps.ts
+var exec = promisify(execFile);
+var GIT = "git";
+function errMsg(e) {
+  if (e && typeof e === "object" && "stderr" in e) return String(e.stderr || e.message || e);
+  return String(e instanceof Error ? e.message : e);
+}
+function repoNameFromUrl(url) {
+  const clean = url.replace(/^git@[^:]+:/, "").replace(/^https?:\/\//, "").replace(/\.git$/, "").split("/").filter(Boolean);
+  const owner = clean[clean.length - 2] ?? "repo";
+  const repo = clean[clean.length - 1] ?? "repo";
+  return `${owner}-${repo}`.replace(/[^A-Za-z0-9_.-]/g, "-");
+}
+async function projectsRoot() {
+  if (PROJECT_ROOTS.length > 0) return PROJECT_ROOTS[0];
+  return path19.join(os6.homedir(), "projects");
+}
+function assertInsideRoots(clonePath) {
+  const resolved = path19.resolve(clonePath);
+  const roots = PROJECT_ROOTS.length > 0 ? PROJECT_ROOTS.map((r) => path19.resolve(r)) : [path19.resolve(path19.join(os6.homedir(), "projects"))];
+  const ok = roots.some((root) => resolved === root || resolved.startsWith(root + path19.sep));
+  if (!ok) throw new Error(`clone path ${clonePath} is outside the configured project roots (${roots.join(", ")})`);
+}
+async function cloneRepo({ repoUrl, branch, path: pathHint, shallow }) {
+  try {
+    const root = await projectsRoot();
+    await fs4.mkdir(root, { recursive: true });
+    const name = pathHint || repoNameFromUrl(repoUrl);
+    const dest = path19.join(root, name);
+    assertInsideRoots(dest);
+    if (await fs4.stat(dest).then(() => true).catch(() => false)) {
+      const cur = await git(dest, ["fetch", "--all", "--prune"]);
+      const short2 = await git(dest, ["rev-parse", "--short", "HEAD"]);
+      return { ok: true, clonePath: dest, defaultBranch: branch || "main", reusing: true, fetch: cur, commit: short2.trim() };
+    }
+    const args2 = ["clone"];
+    if (shallow !== false) args2.push("--filter=blob:none");
+    args2.push(repoUrl, dest);
+    const out = await exec(GIT, args2, { timeout: 12e4 });
+    const defaultBranch = branch || await git(dest, ["symbolic-ref", "--short", "HEAD"]).then((b) => b.trim()).catch(() => "main");
+    const short = await git(dest, ["rev-parse", "--short", "HEAD"]).then((b) => b.trim()).catch(() => "");
+    return { ok: true, clonePath: dest, defaultBranch, commit: short, output: out.stdout.slice(-500) };
+  } catch (e) {
+    return { ok: false, error: errMsg(e) };
+  }
+}
+async function repoStatus(clonePath) {
+  try {
+    assertInsideRoots(clonePath);
+    const branch = await git(clonePath, ["rev-parse", "--abbrev-ref", "HEAD"]).then((b) => b.trim());
+    const commit = await git(clonePath, ["rev-parse", "--short", "HEAD"]).then((b) => b.trim());
+    const dirty = await git(clonePath, ["status", "--porcelain"]).then((s) => s.split("\n").filter(Boolean).length).catch(() => 0);
+    return { ok: true, branch, commit, dirty };
+  } catch (e) {
+    return { ok: false, error: errMsg(e), code: "git_status_failed" };
+  }
+}
+async function pullRepo(clonePath, branch) {
+  try {
+    assertInsideRoots(clonePath);
+    const out = await git(clonePath, ["pull", "--ff-only", "origin", branch || "HEAD"]);
+    const commit = await git(clonePath, ["rev-parse", "--short", "HEAD"]).then((b) => b.trim());
+    return { ok: true, commit, output: out.slice(-300) };
+  } catch (e) {
+    return { ok: false, error: errMsg(e), code: "git_pull_failed" };
+  }
+}
+async function commitAndPush(clonePath, branch, message, author) {
+  try {
+    assertInsideRoots(clonePath);
+    await git(clonePath, ["checkout", "-B", branch]);
+    await git(clonePath, ["add", "-A"]);
+    const authorArg = author ? ["--author", author] : [];
+    await git(clonePath, ["commit", ...authorArg, "-m", message]);
+    const out = await git(clonePath, ["push", "-u", "origin", branch]);
+    const commit = await git(clonePath, ["rev-parse", "--short", "HEAD"]).then((b) => b.trim());
+    return { ok: true, commit, branch, output: out.slice(-300) };
+  } catch (e) {
+    return { ok: false, error: errMsg(e), code: "git_push_failed" };
+  }
+}
+async function git(cwd, args2) {
+  const r = await exec(GIT, args2, { cwd, timeout: 6e4, maxBuffer: 4 * 1024 * 1024 });
+  return r.stdout;
+}
+async function ensureProjectsRootDir() {
+  const root = await projectsRoot();
+  await fs4.mkdir(root, { recursive: true });
+  return root;
+}
+
 // src/daemon/index.ts
 var log3 = createLogger("daemon");
 var DELIVERY_PENDING_HEARTBEAT_MS = Math.max(250, Number(process.env.OPEN_WORKORA_DELIVERY_PENDING_HEARTBEAT_MS ?? 750));
@@ -8766,15 +8886,15 @@ if (!apiKey) {
 var MID_FILE = machineIdFile();
 var readMachineId = () => {
   try {
-    return fs4.readFileSync(MID_FILE, "utf8").trim() || void 0;
+    return fs5.readFileSync(MID_FILE, "utf8").trim() || void 0;
   } catch {
     return void 0;
   }
 };
 var saveMachineId = (id) => {
   try {
-    fs4.mkdirSync(path18.dirname(MID_FILE), { recursive: true });
-    fs4.writeFileSync(MID_FILE, id);
+    fs5.mkdirSync(path20.dirname(MID_FILE), { recursive: true });
+    fs5.writeFileSync(MID_FILE, id);
   } catch {
   }
 };
@@ -8901,6 +9021,37 @@ conn = new Connection(serverUrl, apiKey, (msg) => {
         (cause) => conn.send({ type: "project:directories", requestId: msg.requestId, error: String(cause instanceof Error ? cause.message : cause), code: cause instanceof ProjectDirectoryError ? cause.code : "invalid_project_path" })
       );
       break;
+    // Git project ops (Phase 1: "paste a repo, get a coding agent")
+    case "git:clone":
+      void cloneRepo({ repoUrl: String(msg.repoUrl ?? ""), branch: typeof msg.branch === "string" ? msg.branch : void 0, path: typeof msg.path === "string" ? msg.path : void 0, shallow: msg.shallow !== false }).then(
+        (result) => conn.send({ type: "git:cloned", requestId: msg.requestId, ...result }),
+        (cause) => conn.send({ type: "git:cloned", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) })
+      );
+      break;
+    case "git:status":
+      void repoStatus(String(msg.clonePath ?? "")).then(
+        (result) => conn.send({ type: "git:status", requestId: msg.requestId, ...result }),
+        (cause) => conn.send({ type: "git:status", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) })
+      );
+      break;
+    case "git:pull":
+      void pullRepo(String(msg.clonePath ?? ""), typeof msg.branch === "string" ? msg.branch : void 0).then(
+        (result) => conn.send({ type: "git:pulled", requestId: msg.requestId, ...result }),
+        (cause) => conn.send({ type: "git:pulled", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) })
+      );
+      break;
+    case "git:push":
+      void commitAndPush(String(msg.clonePath ?? ""), String(msg.branch ?? "workora/agent-changes"), String(msg.message ?? "workora: agent changes"), typeof msg.author === "string" ? msg.author : void 0).then(
+        (result) => conn.send({ type: "git:pushed", requestId: msg.requestId, ...result }),
+        (cause) => conn.send({ type: "git:pushed", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) })
+      );
+      break;
+    case "git:projects-root":
+      void ensureProjectsRootDir().then(
+        (root) => conn.send({ type: "git:projects-root", requestId: msg.requestId, root }),
+        (cause) => conn.send({ type: "git:projects-root", requestId: msg.requestId, error: String(cause instanceof Error ? cause.message : cause) })
+      );
+      break;
     case "probe-models":
       void listModels(msg.runtime ?? "").then((models) => conn.send({ type: "models", requestId: msg.requestId, runtime: msg.runtime, models })).catch((e) => conn.send({ type: "models", requestId: msg.requestId, runtime: msg.runtime, models: null, error: String(e?.message ?? e) }));
       break;
@@ -8914,18 +9065,18 @@ conn = new Connection(serverUrl, apiKey, (msg) => {
       conn.send({ type: "pong" });
       break;
     default:
-      if (typeof msg.requestId === "string" && msg.requestId) conn.send({ type: "rpc:nack", requestId: msg.requestId, error: `daemon ${"0.14.0"} does not support "${msg.type}" \u2014 restart it with: npx github:tharunramagiri/Workora/packages/daemon#main` });
+      if (typeof msg.requestId === "string" && msg.requestId) conn.send({ type: "rpc:nack", requestId: msg.requestId, error: `daemon ${"0.14.0"} does not support "${msg.type}" \u2014 restart it with: curl -fsSL https://raw.githubusercontent.com/tharunramagiri/Workora/main/scripts/install-daemon.sh | bash -s --` });
   }
 }, () => {
   const runtimes = detectRuntimes();
-  log3.info("ready", { runtimes, hostname: os6.hostname() });
+  log3.info("ready", { runtimes, hostname: os7.hostname() });
   conn.send({
     type: "ready",
     capabilities: ["agent:start", "agent:stop", "agent:sleep", "agent:reset", "agent:profile", "agent:deliver", "agent:workspace", "resource:limits", DELIVERY_ADMISSION_CAPABILITY, AGENT_CONTROL_ACK_CAPABILITY, PROJECT_DIRECTORY_CAPABILITY, PROJECT_BROWSER_CAPABILITY],
     runtimes,
     runningAgents: mgr.running(),
-    hostname: os6.hostname(),
-    os: `${os6.platform()} ${os6.arch()}`,
+    hostname: os7.hostname(),
+    os: `${os7.platform()} ${os7.arch()}`,
     daemonVersion: "0.14.0",
     machineId: readMachineId()
     // Stable identity: empty on first connection; server sends it back via ready:ack for persistence.

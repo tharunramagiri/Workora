@@ -7,7 +7,8 @@
     "members": "Members",
     "computers": "Computers",
     "settings": "Settings",
-    "alerts": "Alerts"
+    "alerts": "Alerts",
+    "projects": "Projects"
   },
   "alerts": {
     "title": "Notifications",
@@ -644,5 +645,33 @@
     "useThis": "Use this avatar",
     "shuffle": "Shuffle",
     "upload": "Upload image"
+  },
+  "projects": {
+    "title": "Projects",
+    "subtitle": "Import a git repo and assign a coding agent. The agent clones it, works on a branch, and pushes ready-to-review changes back.",
+    "importRepo": "Import a repo",
+    "repoUrl": "Git repo URL (https://github.com/… or git@github.com:…)",
+    "machine": "Machine",
+    "chooseMachine": "Choose machine",
+    "nameOptional": "Name (optional)",
+    "import": "Import",
+    "importing": "Importing…",
+    "empty": "No projects yet. Import a repo to get started.",
+    "status": "Status",
+    "clonePath": "Clone path",
+    "branch": "Branch",
+    "lastCommit": "Last commit",
+    "assignAgent": "Assign agent",
+    "assignAgentHint": "Bind an agent to this project so it can work on the code.",
+    "sync": "Pull latest",
+    "push": "Commit & push",
+    "pushBranch": "Branch to push",
+    "pushMessage": "Commit message",
+    "openChannel": "Open channel",
+    "remove": "Remove",
+    "error": "Error",
+    "ready": "Ready",
+    "cloning": "Cloning…",
+    "noMachines": "Connect a machine first (Computers tab) to import a repo."
   }
 }

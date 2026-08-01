@@ -38,6 +38,26 @@ Build a sustainable virtual company where:
 
 ---
 
+## Projects — paste a repo, get a coding agent
+
+Import any GitHub/git repo into Workora, bind an agent to it, and the agent
+clones the code, works on a feature branch, and pushes ready-to-review changes
+back to the upstream.
+
+- **Import**: `Projects` tab → paste a git URL → pick a machine → the daemon
+  blobless-clones it (`--filter=blob:none`) and creates a `#<repo>-eng` channel.
+- **Assign**: create/bind an agent with the project as its working directory.
+- **Ship**: the agent works in the clone, then the UI (or the agent) commits on
+  `workora/<task>/<agent>` and pushes. A `#<repo>-<branch>` channel is
+  auto-created so patches + review + merge live in one place (buzz-style).
+- **Memory**: `Workora checkpoint save` writes the agent's session context to
+  the `workora/checkpoints/v1` git branch of the repo — so the reasoning behind
+  every commit travels with the code, and a future session resumes without
+  starting from zero (entire.io-style).
+
+Requires `git` on the machine and (for private repos) a GitHub SSH key the
+daemon can use.
+
 ## Deploy anywhere (fresh install)
 
 The repo is self-contained — anyone can deploy a clean instance with zero

@@ -27,6 +27,7 @@ import { handleReminders } from "./reminders.js";
 import { handleChannels } from "./channels.js";
 import { handleMessages } from "./messages.js";
 import { handleTasks } from "./tasks.js";
+import { handleProjects } from "./projects.js";
 
 export async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL, method: string): Promise<boolean> {
   const p = url.pathname;
@@ -52,6 +53,7 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, url: 
   const sctx: ServerCtx = { ...user, serverId };
 
   if (await handleAgents(sctx)) return true;
+  if (await handleProjects(sctx)) return true;
   if (await handleReminders(sctx)) return true;
   if (await handleChannels(sctx)) return true;
   if (await handleMessages(sctx)) return true;

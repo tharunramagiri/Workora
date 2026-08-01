@@ -381,6 +381,7 @@ export class AgentManager {
       ...process.env, FORCE_COLOR: "0",
       PATH: `${this.binDir}${path.delimiter}${process.env.PATH ?? ""}`,
       OPEN_WORKORA_SERVER_URL: config.serverUrl, OPEN_WORKORA_AGENT_ID: agentId, OPEN_WORKORA_AGENT_TOKEN: config.agentToken ?? "",
+      OPEN_WORKORA_PROJECT_PATH: projectDir !== stateDir ? projectDir : "",
     };
     delete env.CLAUDECODE; delete env.CLAUDE_CODE_ENTRYPOINT;
 

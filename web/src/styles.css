@@ -1070,3 +1070,27 @@ aside.traj-col.profile-mode .scroll{flex:1;min-height:0;overflow:auto;margin:0 -
   .skel-sb,.skel-traj{display:none}
   .skel-rail .skel-brand{display:none}
 }
+
+/* ── Projects (imported git repos, "paste a repo, get a coding agent") ── */
+.project-import { padding: 18px; margin-bottom: 18px; }
+.project-import h3 { margin: 0 0 12px; font-size: 16px; }
+.project-import-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.project-import-row .inp { flex: 1 1 200px; }
+.project-list { display: flex; flex-direction: column; gap: 12px; }
+.project-row { padding: 16px 18px; display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+.project-name { display: flex; align-items: center; gap: 10px; }
+.project-name strong { font-size: 16px; }
+.project-url { color: var(--muted); font-size: 13px; font-family: var(--mono); margin-top: 2px; }
+.project-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; color: var(--muted); font-size: 13px; }
+.project-meta code { background: var(--surface-strong); padding: 1px 6px; border-radius: 5px; font-family: var(--mono); }
+.project-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; min-width: 220px; }
+.project-push { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.inp-sm { width: 130px; padding: 6px 8px; font-size: 12px; }
+.badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+.badge-ok { background: var(--tint-green); color: var(--success); }
+.badge-warn { background: var(--mention); color: var(--amber); }
+.badge-err { background: var(--error-soft); color: var(--error); }
+.project-agents { margin-top: 18px; padding: 16px 18px; }
+.project-agent-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.chip { background: var(--surface-strong); border: 1px solid var(--hair); border-radius: 999px; padding: 4px 12px; font-size: 12px; }
+.page-sub { color: var(--muted); margin-top: 4px; }

@@ -281,4 +281,53 @@ action.command("prepare").description("prepare an action card (action JSON from 
     console.log(`Prepared ${d.action?.type} card -> ${opts.target} (msg ${String(d.id).slice(0, 8)}). A human can click it to commit.`);
   });
 
+// checkpoint: session-in-git memory (entire.io-style). Writes the agent's session context
+// (prompt, tool calls, files touched, decisions) to the `workora/checkpoints/v1` branch of the
+// bound project, so the agent's reasoning travels with the code and a future session can resume
+// without starting from zero. The daemon injects OPEN_WORKORA_PROJECT_PATH when the agent is
+// bound to a project.
+const checkpoint = program.command("checkpoint").description("save session context to git history (workora/checkpoints/v1 branch)");
+checkpoint.command("save").description("write session JSON (from stdin) into the checkpoints branch")
+  .option("--message <text>", "short label for this checkpoint (default: session checkpoint)")
+  .action(async (opts) => {
+    const raw = (await readStdin()).trim();
+    if (!raw) { console.error("Error: session JSON required on stdin"); console.error('Next action: echo \'{"session":"…","toolCalls":[…]}\' | Workora checkpoint save'); process.exit(1); }
+    const projectPath = process.env.OPEN_WORKORA_PROJECT_PATH ?? "";
+    if (!projectPath) { console.error("Error: not bound to a project (OPEN_WORKORA_PROJECT_PATH unset)"); process.exit(1); }
+    const { execFile } = await import("node:child_process");
+    const { promisify } = await import("node:util");
+    const exec = promisify(execFile);
+    const run = async (args: string[]) => { try { return (await exec("git", args, { cwd: projectPath })).stdout; } catch (e: any) { console.error(`git ${args[0]} failed: ${e?.stderr ?? e?.message ?? e}`); process.exit(1); } };
+    const branch = "workora/checkpoints/v1";
+    // Ensure the checkpoints branch exists (created from current HEAD if missing).
+    const hasBranch = (await run(["branch", "--list", branch])).trim() !== "";
+    if (!hasBranch) await run(["checkout", "-B", branch]);
+    else await run(["checkout", branch]);
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const dir = `workora/checkpoints/${stamp}`;
+    const { mkdir, writeFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    await mkdir(join(projectPath, dir), { recursive: true });
+    await writeFile(join(projectPath, dir, "session.json"), raw);
+    await writeFile(join(projectPath, dir, "meta.json"), JSON.stringify({ agent: AGENT, message: opts.message ?? "session checkpoint", at: new Date().toISOString() }, null, 2));
+    await run(["add", dir]);
+    await run(["commit", "-m", `workora checkpoint: ${opts.message ?? "session checkpoint"}`]);
+    // Return to the working branch.
+    const current = process.env.OPEN_WORKORA_AGENT_BRANCH ?? "main";
+    await run(["checkout", current]).catch(() => {});
+    console.log(`Checkpoint saved to ${branch} (${dir})`);
+  });
+checkpoint.command("resume").description("list recent checkpoints for this project (read from the checkpoints branch)")
+  .action(async () => {
+    const projectPath = process.env.OPEN_WORKORA_PROJECT_PATH ?? "";
+    if (!projectPath) { console.error("Error: not bound to a project"); process.exit(1); }
+    const { execFile } = await import("node:child_process");
+    const { promisify } = await import("node:util");
+    const exec = promisify(execFile);
+    const run = async (args: string[]) => { try { return (await exec("git", args, { cwd: projectPath })).stdout; } catch { return ""; } };
+    const branch = "workora/checkpoints/v1";
+    const out = await run(["log", "--oneline", "-10", branch]);
+    console.log(out || "No checkpoints yet.");
+  });
+
 program.parseAsync(process.argv).catch((e) => { console.error("Error:", e?.message ?? e); process.exit(1); });
