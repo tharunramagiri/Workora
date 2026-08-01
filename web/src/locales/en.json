@@ -672,6 +672,9 @@
     "error": "Error",
     "ready": "Ready",
     "cloning": "Cloning…",
-    "noMachines": "Connect a machine first (Computers tab) to import a repo."
+    "noMachines": "Connect a machine first (Computers tab) to import a repo.",
+    "repoUrlError": "Enter a repo URL first.",
+    "chooseMachineError": "Select a machine to clone into.",
+    "importFailed": "Import failed: {error}"
   }
 }

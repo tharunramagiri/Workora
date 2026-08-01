@@ -36,6 +36,13 @@ export function Projects() {
   const [pushMsg, setPushMsg] = useState("workora: agent changes");
   const [pushing, setPushing] = useState<string | null>(null);
 
+  const onlineMachines = machines.filter((m) => m.status === "online");
+
+  // Auto-select the first online machine (most setups have exactly one); still overridable.
+  useEffect(() => {
+    if (!machineId && onlineMachines.length > 0) setMachineId(onlineMachines[0]!.id);
+  }, [onlineMachines.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const load = useCallback(async () => {
     try { const list = await api("GET", "/api/projects"); setProjects(Array.isArray(list) ? list : []); }
     catch { setProjects([]); }
@@ -45,12 +52,12 @@ export function Projects() {
 
   const importRepo = async () => {
     setErr("");
-    if (!repoUrl.trim()) { setErr(t("projects.repoUrl")); return; }
-    if (!machineId) { setErr(t("projects.chooseMachine")); return; }
+    if (!repoUrl.trim()) { setErr(t("projects.repoUrlError")); return; }
+    if (!machineId) { setErr(t("projects.chooseMachineError")); return; }
     setBusy(true);
     try {
       const r = await api("POST", "/api/projects", { repoUrl: repoUrl.trim(), name: name.trim() || undefined, machineId });
-      if (r?.status === "error") setErr(String(r?.error ?? "clone failed"));
+      if (r?.status === "error") setErr(t("projects.importFailed", { error: String(r?.error ?? "") }));
       setRepoUrl(""); setName("");
       await load();
     } catch (e: any) { setErr(String(e?.message ?? e)); }
@@ -82,7 +89,6 @@ export function Projects() {
     await load();
   };
 
-  const onlineMachines = machines.filter((m) => m.status === "online");
   const activeAgents = agents.filter((a) => a.status === "active");
 
   return (
