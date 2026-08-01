@@ -8801,8 +8801,7 @@ async function cloneRepo({ repoUrl, branch, path: pathHint, shallow }) {
   try {
     const root = await projectsRoot();
     await fs4.mkdir(root, { recursive: true });
-    const name = pathHint || repoNameFromUrl(repoUrl);
-    const dest = path19.join(root, name);
+    const dest = pathHint && path19.isAbsolute(pathHint) ? path19.resolve(pathHint) : path19.join(root, pathHint || repoNameFromUrl(repoUrl));
     assertInsideRoots(dest);
     if (await fs4.stat(dest).then(() => true).catch(() => false)) {
       const cur = await git(dest, ["fetch", "--all", "--prune"]);

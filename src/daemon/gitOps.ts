@@ -60,8 +60,11 @@ export async function cloneRepo({ repoUrl, branch, path: pathHint, shallow }: Cl
   try {
     const root = await projectsRoot();
     await fs.mkdir(root, { recursive: true });
-    const name = pathHint || repoNameFromUrl(repoUrl);
-    const dest = path.join(root, name);
+    // pathHint may be absolute (server-computed) or a bare name; either way the result must
+    // resolve inside the roots. Absolute hints are used as-is; names join onto the projects root.
+    const dest = pathHint && path.isAbsolute(pathHint)
+      ? path.resolve(pathHint)
+      : path.join(root, pathHint || repoNameFromUrl(repoUrl));
     assertInsideRoots(dest);
     if (await fs.stat(dest).then(() => true).catch(() => false)) {
       // Already cloned: fetch latest instead of failing.
