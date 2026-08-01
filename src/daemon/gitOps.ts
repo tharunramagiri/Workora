@@ -126,8 +126,12 @@ export async function commitAndPush(clonePath: string, branch: string, message: 
     const commit = await git(clonePath, ["rev-parse", "--short", "HEAD"]).then((b) => b.trim());
     return { ok: true, commit, branch, output: out.slice(-300) };
   } catch (e) {
-    // Nothing to commit is not an error for our callers (agent did no work) — surface as ok:false with a clear message.
-    return { ok: false, error: errMsg(e), code: "git_push_failed" };
+    const msg = errMsg(e);
+    // "nothing to commit" means the agent made no changes on this branch — a normal no-op, not an error.
+    if (/nothing to commit|no changes added|nothing added to commit/i.test(msg)) {
+      return { ok: false, error: "no changes to commit on this branch", code: "git_nothing_to_commit" };
+    }
+    return { ok: false, error: msg, code: "git_push_failed" };
   }
 }
 

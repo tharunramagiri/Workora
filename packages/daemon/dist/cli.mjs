@@ -8851,7 +8851,11 @@ async function commitAndPush(clonePath, branch, message, author) {
     const commit = await git(clonePath, ["rev-parse", "--short", "HEAD"]).then((b) => b.trim());
     return { ok: true, commit, branch, output: out.slice(-300) };
   } catch (e) {
-    return { ok: false, error: errMsg(e), code: "git_push_failed" };
+    const msg = errMsg(e);
+    if (/nothing to commit|no changes added|nothing added to commit/i.test(msg)) {
+      return { ok: false, error: "no changes to commit on this branch", code: "git_nothing_to_commit" };
+    }
+    return { ok: false, error: msg, code: "git_push_failed" };
   }
 }
 async function git(cwd, args2) {
