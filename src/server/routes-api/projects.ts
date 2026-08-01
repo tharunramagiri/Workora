@@ -69,7 +69,7 @@ export async function handleProjects(ctx: ServerCtx): Promise<boolean> {
     return (sendJson(res, 200, { id: rowId, status: "ready", clonePath, defaultBranch, channelId: channel?.id ?? null }), true);
   }
 
-  const m = /^\/api\/projects\/([^/]+)$/.exec(p);
+  const m = /^\/api\/projects\/([^/]+)/.exec(p); // no trailing $ so /sync|push|branch-channel sub-paths match too
   if (m) {
     const id = m[1]!;
     const row = (await db.select().from(schema.projects).where(and(eq(schema.projects.id, id), eq(schema.projects.serverId, serverId))))[0];
