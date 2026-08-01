@@ -278,7 +278,7 @@ const localizedHead = {
         <div class="lp-container lp-nav__inner">
           <a class="lp-brand" href="https://getworkora.com/" aria-label="Workora home" data-home-link>
             <img class="lp-brand-mark" src={docsBrandMarkSrc} alt="" width="34" height="34" />
-            <span class="lp-brand-word">open<b>-tag</b></span>
+            <span class="lp-brand-word">Workora</span>
           </a>
           <nav class="lp-nav__links" aria-label="Main navigation">
             {docsNavLinks.map((link) => (
@@ -569,8 +569,7 @@ npm run daemon</code></pre>
       const initialLang = openedLegacyChineseHash ? "zh" : readStoredLanguage() || "en";
       applyLanguage(initialLang);
 
-      document.querySelector("[data-lang-toggle]")?.addEventListener("click", () => {
-        const next = document.documentElement.lang === "zh-CN" ? "en" : "zh";
+      document.querySelector("[        const next = document.documentElement.lang === "zh-CN" ? "en" : "zh";
         applyLanguage(next);
       });
 

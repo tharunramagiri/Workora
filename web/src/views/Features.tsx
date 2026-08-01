@@ -51,9 +51,7 @@ type FeatureCopy = {
     selfHosted: string;
     docs: string;
     github: string;
-    enter: string;
-    languageLabel: string;
-  };
+    enter: string;  };
   hero: {
     eyebrow: string;
     title: string;
@@ -338,9 +336,7 @@ export function Features() {
   const cases = copy.cases.items;
   const [activeId, setActiveId] = useState(cases[0]!.id);
   const active = useMemo(() => cases.find((c) => c.id === activeId) ?? cases[0]!, [activeId, cases]);
-  const enterWorkspace = () => navigate(me ? `/s/${slug}/channel` : "/login");
-  const nextLang: Lang = "en";
-  const switchLanguage = () => {
+  const enterWorkspace = () => navigate(me ? `/s/${slug}/channel` : "/login");  const switchLanguage = () => {
     void i18n.changeLanguage(nextLang);
     try { localStorage.setItem("Workora.lang", nextLang); } catch { /* ignore */ }
   };
@@ -372,13 +368,7 @@ export function Features() {
         }}
         githubLabel={copy.nav.github}
         enterLabel={copy.nav.enter}
-        onEnterWorkspace={enterWorkspace}
-        languageToggle={{
-          label: copy.nav.languageLabel,
-          text: lang === "en" ? "中文" : "EN",
-          onClick: switchLanguage,
-        }}
-      />
+        onEnterWorkspace={enterWorkspace}      />
 
       <section className="lp-feature-hero">
         <div className="lp-container lp-feature-hero__grid">

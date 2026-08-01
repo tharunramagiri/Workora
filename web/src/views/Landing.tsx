@@ -132,7 +132,7 @@ const LANDING_COPY = {
       issues: "Issues",
       copyright: "© 2026 Workora",
       built: "Built to be self-hosted.",
-      devCredit: "Built by Ramagiri Tharun (@ramagiritharun) · ramagiritharun@gmail.com",
+      devCredit: "Workora team · hello@workora.dev",
     },
   },
 } satisfies Record<Lang, any>;
@@ -220,9 +220,7 @@ export function Landing() {
   const navigate = useNavigate();
   const [lang, setLang] = useState<Lang>(() => detectLandingLang());
   const enterWorkspace = () => navigate(me ? `/s/${slug}/channel` : "/login");
-  const copy = LANDING_COPY[lang];
-  const nextLang: Lang = "en";
-  const switchLanguage = () => {
+  const copy = LANDING_COPY.en;  const switchLanguage = () => {
     setLang(nextLang);
     try { localStorage.setItem("Workora.lang", nextLang); } catch { /* ignore */ }
   };
@@ -253,13 +251,7 @@ export function Landing() {
         }}
         githubLabel={copy.nav.github}
         enterLabel={copy.nav.enter}
-        onEnterWorkspace={enterWorkspace}
-        languageToggle={{
-          label: copy.nav.languageLabel,
-          text: lang === "en" ? "中文" : "EN",
-          onClick: switchLanguage,
-        }}
-      />
+        onEnterWorkspace={enterWorkspace}      />
 
       {/* —— Hero —— */}
       <section className="lp-hero" id="top">

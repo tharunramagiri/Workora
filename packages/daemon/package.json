@@ -1,5 +1,5 @@
 {
-  "name": "@ramagiritharun/Workora-daemon",
+  "name": "@workora/Workora-daemon",
   "version": "0.14.0",
   "description": "Workora compute-plane daemon — connect any machine to a Workora server so its agents run there. No repo clone needed.",
   "license": "Apache-2.0",

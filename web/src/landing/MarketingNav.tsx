@@ -12,13 +12,7 @@ type MarketingNavProps = {
   labels?: Partial<Record<PublicNavLinkKey, string>>;
   githubLabel?: string;
   enterLabel: string;
-  onEnterWorkspace: () => void;
-  languageToggle?: {
-    label: string;
-    text: string;
-    onClick: () => void;
-  };
-};
+  onEnterWorkspace: () => void;};
 
 type PublicBrandProps = {
   href?: string;
@@ -29,7 +23,7 @@ function PublicBrandContent() {
   return (
     <>
       <img className="lp-brand-mark" src={PUBLIC_BRAND_MARK_SRC} alt="" width={34} height={34} />
-      <span className="lp-brand-word">open<b>-tag</b></span>
+      <span className="lp-brand-word">Workora</span>
     </>
   );
 }
@@ -77,13 +71,7 @@ export function MarketingNav({
             </a>
           ))}
         </nav>
-        <div className="lp-nav__cta">
-          {languageToggle && (
-            <button className="lp-btn lp-btn--ghost lp-btn--sm" type="button" onClick={languageToggle.onClick} aria-label={languageToggle.label}>
-              {languageToggle.text}
-            </button>
-          )}
-          <a className="lp-btn lp-btn--ghost lp-btn--sm" href={GITHUB_URL} target="_blank" rel="noreferrer">
+        <div className="lp-nav__cta">          <a className="lp-btn lp-btn--ghost lp-btn--sm" href={GITHUB_URL} target="_blank" rel="noreferrer">
             <GithubIcon /> {githubLabel}
           </a>
           <button className="lp-btn lp-btn--primary lp-btn--sm" onClick={onEnterWorkspace}>{enterLabel}</button>

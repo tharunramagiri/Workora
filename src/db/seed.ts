@@ -17,7 +17,7 @@ async function main() {
   }
 
   // Skip whenever ANY workspace exists — not just slug "Workora" — so slug renames
-  // (e.g. open-tag -> Workora) can never break bootstrap idempotency.
+  // (e.g. Workora -> Workora) can never break bootstrap idempotency.
   const existing = await db.select({ id: servers.id }).from(servers).limit(1);
   if (existing.length) {
     console.log("[seed] workspace already exists, nothing to do");
