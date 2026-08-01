@@ -181,6 +181,8 @@ mark{background:var(--g-peach);color:var(--ink);padding:0 2px;border-radius:4px}
 .auth-submit{width:100%;margin-top:4px;padding:10px}
 .auth-alt{margin-top:14px;font-size:13px;color:var(--muted);text-align:center}
 .auth-dev{margin-top:18px;padding-top:14px;border-top:1px solid var(--hair);font-size:12px;color:var(--muted);text-align:center}
+.auth-dev a{color:var(--muted);text-decoration:underline;text-underline-offset:2px}
+.auth-dev a:hover{color:var(--ink)}
 .auth-alt a{color:var(--ink);cursor:pointer;text-decoration:underline}
 .logout-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:26px;padding-top:18px;border-top:1px solid var(--hair)}
 /* Language switcher: segmented control (settings account page).

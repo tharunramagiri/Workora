@@ -107,7 +107,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
           <button className="ok auth-submit" type="submit" disabled={busy}>{busy ? "…" : mode === "register" ? t("auth.register") : t("auth.login")}</button>
         </form>
         <div className="auth-alt">{mode === "register" ? <>{t("auth.hasAccount")}<a href="/login">{t("auth.login")}</a></> : <>{t("auth.noAccount")}<a href="/register">{t("auth.register")}</a></>}</div>
-        <div className="auth-dev">Ramagiri Tharun</div>
+        <div className="auth-dev">Built by <a href="https://ramagiritharun.in" target="_blank" rel="noreferrer">Ramagiri Tharun</a> · <a href="https://www.linkedin.com/in/ramagiritharun/" target="_blank" rel="noreferrer">LinkedIn</a></div>
       </div>
     </div>
   );

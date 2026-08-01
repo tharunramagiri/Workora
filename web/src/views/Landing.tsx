@@ -132,7 +132,9 @@ const LANDING_COPY = {
       issues: "Issues",
       copyright: "© 2026 Workora",
       built: "Built to be self-hosted.",
-      devCredit: "Ramagiri Tharun",
+      devCredit: "Built by Ramagiri Tharun",
+      devSite: "https://ramagiritharun.in",
+      devLinkedIn: "https://www.linkedin.com/in/ramagiritharun/",
     },
   },
 } satisfies Record<Lang, any>;
@@ -435,7 +437,14 @@ export function Landing() {
           <div className="lp-footer__base">
             <span>{copy.footer.copyright}</span>
             <span>{copy.footer.built}</span>
-            <span className="lp-footer__dev">{copy.footer.devCredit}</span>
+            <span className="lp-footer__dev">
+              {copy.footer.devCredit}{" "}
+              <a href={copy.footer.devSite} target="_blank" rel="noreferrer">Ramagiri Tharun</a>
+              <span className="lp-footer__dev-sep">·</span>
+              <a href={copy.footer.devLinkedIn} target="_blank" rel="noreferrer" aria-label="Ramagiri Tharun on LinkedIn">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/></svg>
+              </a>
+            </span>
           </div>
         </div>
       </footer>
