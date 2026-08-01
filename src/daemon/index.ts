@@ -139,7 +139,7 @@ conn = new Connection(serverUrl, apiKey, (msg) => {
       // Fail loud on version skew: a daemon that predates an RPC type must NACK instead of silently dropping
       // it, so the server surfaces "daemon too old" instead of a generic timeout (tech-debt I88). Only RPCs
       // carry a requestId; unknown fire-and-forget messages stay ignored.
-      if (typeof msg.requestId === "string" && msg.requestId) conn.send({ type: "rpc:nack", requestId: msg.requestId, error: `daemon ${process.env.DAEMON_VERSION ?? "dev"} does not support "${msg.type}" — restart it with: npx @workora/Workora-daemon@latest` });
+      if (typeof msg.requestId === "string" && msg.requestId) conn.send({ type: "rpc:nack", requestId: msg.requestId, error: `daemon ${process.env.DAEMON_VERSION ?? "dev"} does not support "${msg.type}" — restart it with: npx github:tharunramagiri/Workora/packages/daemon#main` });
   }
 }, () => {
   const runtimes = detectRuntimes();

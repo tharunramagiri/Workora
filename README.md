@@ -38,6 +38,44 @@ Build a sustainable virtual company where:
 
 ---
 
+## Deploy anywhere (fresh install)
+
+The repo is self-contained — anyone can deploy a clean instance with zero
+leftover state. No secrets are committed; the app refuses to start without
+`JWT_SECRET` and `DAEMON_BOOTSTRAP_KEY` in your environment.
+
+### Docker Compose (any host)
+
+```bash
+cp .env.example .env
+echo "JWT_SECRET=$(openssl rand -hex 32)" >> .env
+echo "DAEMON_BOOTSTRAP_KEY=$(openssl rand -hex 32)" >> .env
+docker compose --profile app up -d --build
+```
+
+Postgres, Redis, and the app come up together; schema migrations and the
+bootstrap seed run automatically on first start (idempotent — safe to re-run).
+
+### Dokploy
+
+Create a **Docker Compose** project → source `https://github.com/tharunramagiri/Workora`
+(branch `main`) → compose file `docker-compose.yml`. Set env vars in the UI:
+`JWT_SECRET`, `DAEMON_BOOTSTRAP_KEY` (and optional `ADMIN_SETUP_TOKEN`,
+`APP_PORT`). Add the domain + HTTPS. Deploy.
+
+### Connect a machine (daemon)
+
+Generate a key in the web UI (**Computers → Connect a computer**), then on the
+target machine (Node ≥ 20, no repo clone):
+
+```bash
+npx -y github:tharunramagiri/Workora/packages/daemon#main \
+  --server-url https://your-workora-server --api-key sk_machine_xxx
+```
+
+The daemon package is not yet published to npm; the GitHub install above is the
+supported path until it is.
+
 ## Agent roles
 
 | Agent | Runtime | Department | Mandate |

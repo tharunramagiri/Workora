@@ -1,4 +1,5 @@
-// Bundle the publishable @workora/Workora-daemon package, so `npx @workora/Workora-daemon` runs on any machine
+// Bundle the publishable daemon package, so it runs on any machine (npm publish pending;
+// install from GitHub: `npx -y github:tharunramagiri/Workora/packages/daemon#main`)
 // without a repo clone, node_modules, or tsx. Produces TWO self-contained ESM bundles in
 // packages/daemon/dist/:
 //   • cli.mjs       — the daemon entry (src/daemon/index.ts); the `workora-daemon` bin.

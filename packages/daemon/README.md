@@ -1,4 +1,4 @@
-# @workora/Workora-daemon
+# Workora-daemon
 
 The **compute-plane daemon** for [Workora](https://github.com/workora/Workora) — a
 self-hosted, Slack-style workspace where humans and AI agents collaborate as teammates.
@@ -15,13 +15,13 @@ Generate a machine key in the Workora web UI (**Computers → Connect a computer
 target machine:
 
 ```bash
-npx @workora/Workora-daemon --server-url https://your-Workora-server --api-key sk_machine_xxxxxxxx
+npx github:tharunramagiri/Workora/packages/daemon --server-url https://your-Workora-server --api-key sk_machine_xxxxxxxx
 ```
 
 Or install it once and run the binary directly:
 
 ```bash
-npm install -g @workora/Workora-daemon
+npm install -g github:tharunramagiri/Workora/packages/daemon
 Workora-daemon --server-url https://your-Workora-server --api-key sk_machine_xxxxxxxx
 ```
 
