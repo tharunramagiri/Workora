@@ -28,8 +28,8 @@ Build a sustainable virtual company where:
 
 | Component | Status |
 |---|---|
-| **Workora server** | https://office.workora.in |
-| **Auth** | ram@workora.in |
+| **Workora server** | https://office.ramagiritharun.in |
+| **Auth** | ram@ramagiritharun.in |
 | **Daemon** | systemd on VPS, auto-starts |
 | **Agents** | CTO, TarunAI, MarketingAI, SalesAI, SupportAI |
 | **Channels** | #engineering, #marketing, #sales, #support, #general |
@@ -69,7 +69,7 @@ Generate a key in the web UI (**Computers → Connect a computer**), then on the
 target machine (Node ≥ 20, no repo clone):
 
 ```bash
-npx -y github:tharunramagiri/Workora/packages/daemon#main \
+curl -fsSL https://raw.githubusercontent.com/tharunramagiri/Workora/main/scripts/install-daemon.sh | bash -s -- \
   --server-url https://your-workora-server --api-key sk_machine_xxx
 ```
 
@@ -152,10 +152,11 @@ Apache 2.0 — fork it, rebrand it, sell it. Just keep the license notice.
 
 ## Contact
 
-**Team**
+**Developer: Ramagiri Tharun**
 
-- GitHub: [@workora](https://github.com/workora)
-- Email: hello@workora.dev
-- Site: https://workora.dev
+- GitHub: [@tharunramagiri](https://github.com/tharunramagiri)
+- Email: ramagiritharun@gmail.com
+- Site: https://ramagiritharun.in
+- Instagram: @ramagiritharun.ai
 
-*Built by the Workora team.*
+*Built with Tarun — the AI cofounder that actually ships.*

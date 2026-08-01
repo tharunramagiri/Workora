@@ -5,7 +5,7 @@
 #
 # DOCKER COMPOSE users: the daemon still runs on the HOST (not in a container),
 # but you should use the published npm package form (no repo needed):
-#   ExecStart=/usr/bin/env npx @ramagiritharun/Workora-daemon@latest \
+#   ExecStart=/usr/bin/env bash -c "curl -fsSL https://raw.githubusercontent.com/tharunramagiri/Workora/main/scripts/install-daemon.sh | bash -s --" \
 #     --server-url http://localhost:7788 \
 #     --api-key change-me
 # (7788 is the Docker Compose default port; adjust OPEN_WORKORA_SERVER_URL below accordingly.)
@@ -74,7 +74,7 @@ ExecStart=/usr/bin/env npx tsx src/daemon/index.ts \
   --api-key ${OPEN_WORKORA_DAEMON_API_KEY}
 
 # Docker Compose / no-repo form — uncomment and comment out the bare form above:
-# ExecStart=/usr/bin/env npx @ramagiritharun/Workora-daemon@latest \
+# ExecStart=/usr/bin/env bash -c "curl -fsSL https://raw.githubusercontent.com/tharunramagiri/Workora/main/scripts/install-daemon.sh | bash -s --" \
 #   --server-url ${OPEN_WORKORA_SERVER_URL} \
 #   --api-key ${OPEN_WORKORA_DAEMON_API_KEY}
 

@@ -107,7 +107,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
           <button className="ok auth-submit" type="submit" disabled={busy}>{busy ? "…" : mode === "register" ? t("auth.register") : t("auth.login")}</button>
         </form>
         <div className="auth-alt">{mode === "register" ? <>{t("auth.hasAccount")}<a href="/login">{t("auth.login")}</a></> : <>{t("auth.noAccount")}<a href="/register">{t("auth.register")}</a></>}</div>
-        <div className="auth-dev">Built by Workora team (@workora) · hello@workora.dev</div>
+        <div className="auth-dev">Built by Ramagiri Tharun (@ramagiritharun) · ramagiritharun@gmail.com</div>
       </div>
     </div>
   );

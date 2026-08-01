@@ -132,7 +132,7 @@ const LANDING_COPY = {
       issues: "Issues",
       copyright: "© 2026 Workora",
       built: "Built to be self-hosted.",
-      devCredit: "Workora team · hello@workora.dev",
+      devCredit: "Built by Ramagiri Tharun (@ramagiritharun) · ramagiritharun@gmail.com",
     },
   },
 } satisfies Record<Lang, any>;

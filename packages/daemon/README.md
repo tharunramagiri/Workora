@@ -15,14 +15,14 @@ Generate a machine key in the Workora web UI (**Computers → Connect a computer
 target machine:
 
 ```bash
-npx github:tharunramagiri/Workora/packages/daemon --server-url https://your-Workora-server --api-key sk_machine_xxxxxxxx
+curl -fsSL https://raw.githubusercontent.com/tharunramagiri/Workora/main/scripts/install-daemon.sh   | bash -s -- --server-url https://your-Workora-server --api-key sk_machine_xxxxxxxx
 ```
 
-Or install it once and run the binary directly:
+Or install it once and run the binary directly (the script installs to `~/.workora/bin`):
 
 ```bash
-npm install -g github:tharunramagiri/Workora/packages/daemon
-Workora-daemon --server-url https://your-Workora-server --api-key sk_machine_xxxxxxxx
+curl -fsSL https://raw.githubusercontent.com/tharunramagiri/Workora/main/scripts/install-daemon.sh | bash -s -- --help
+$HOME/.workora/bin/Workora-daemon --server-url https://your-Workora-server --api-key sk_machine_xxxxxxxx
 ```
 
 ### Flags

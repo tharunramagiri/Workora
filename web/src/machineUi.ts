@@ -12,11 +12,11 @@ export function isDaemonUpdateAvailable(machine: MachineVersionState | null | un
 }
 
 export function daemonUpdateCommandTemplate(origin: string): string {
-  return `npx -y github:tharunramagiri/Workora/packages/daemon#main --server-url ${origin} --api-key <your sk_machine_... key>`;
+  return `curl -fsSL https://raw.githubusercontent.com/tharunramagiri/Workora/main/scripts/install-daemon.sh | bash -s -- --server-url ${origin} --api-key <your sk_machine_... key>`;
 }
 
 // The runnable connect command with a real machine key filled in (the connect-computer wizard has the
 // freshly-minted key; daemonUpdateCommandTemplate keeps a placeholder for the key-not-shown update flow).
 export function daemonConnectCommand(origin: string, key: string): string {
-  return `npx -y github:tharunramagiri/Workora/packages/daemon#main --server-url ${origin} --api-key ${key}`;
+  return `curl -fsSL https://raw.githubusercontent.com/tharunramagiri/Workora/main/scripts/install-daemon.sh | bash -s -- --server-url ${origin} --api-key ${key}`;
 }

@@ -281,7 +281,7 @@
     "computersMachines": "Machines",
     "computersConnectBtn": "Connect a machine",
     "computersNoMachine": "No machines",
-    "computersNoMachineHint": "No machines. Click \"Connect a machine\" for a key, then run npx @workora/Workora-daemon on the target machine (needs Node ≥20, no repo clone).",
+    "computersNoMachineHint": "No machines. Click \"Connect a machine\" for a key, then run curl -fsSL https://raw.githubusercontent.com/tharunramagiri/Workora/main/scripts/install-daemon.sh | bash -s -- on the target machine (needs Node ≥20, no repo clone).",
     "computersOnline": "online",
     "computersOffline": "offline",
     "computersDeleting": "Deleting…",
