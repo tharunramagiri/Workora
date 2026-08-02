@@ -6,6 +6,7 @@
 // DELETE /api/skills/:id  — remove from catalog
 import { and, eq, isNull } from "drizzle-orm";
 import { db, schema } from "../../db/index.js";
+import { requestDaemonByMachine } from "../daemonHub.js";
 import { sendErr, sendJson } from "../util.js";
 import type { ServerCtx } from "./ctx.js";
 
@@ -62,7 +63,12 @@ export async function handleSkills(ctx: ServerCtx): Promise<boolean> {
         if (!agent) return (sendErr(res, 404, "agent not found"), true);
         if (sub[1] === "assign") {
           await db.insert(schema.skillAssignments).values({ skillId: id, agentId, serverId }).onConflictDoNothing();
-          return (sendJson(res, 200, { ok: true, assignedTo: agent.name }), true);
+          // Materialize the skill into the agent's provider skills dir so the runtime actually loads it.
+          if (agent.machineId) {
+            const write = await requestDaemonByMachine(agent.machineId, { type: "skills:write", agentId, runtime: agent.runtime, skillName: skill.name, content: skill.content }, 8000);
+            if (write?.ok !== true) return (sendJson(res, 200, { ok: true, assignedTo: agent.name, materialized: false, error: write?.error ?? "skill write skipped" }), true);
+          }
+          return (sendJson(res, 200, { ok: true, assignedTo: agent.name, materialized: true }), true);
         }
         // unassign
         await db.delete(schema.skillAssignments).where(and(eq(schema.skillAssignments.skillId, id), eq(schema.skillAssignments.agentId, agentId)));

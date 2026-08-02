@@ -8447,6 +8447,18 @@ async function listSkills(agentId, runtime = "claude", projectPath) {
   const workspace = roots.workspace ? await readSkillsDir(roots.workspace.dir, roots.workspace.label) : [];
   return { global: global2, workspace };
 }
+async function writeAssignedSkill(agentId, runtime, skillName, content) {
+  if (!skillName || !/^[a-z0-9][a-z0-9-]*$/.test(skillName)) return { ok: false, error: "invalid skill name" };
+  if (!content) return { ok: false, error: "skill content required" };
+  const home = PROVIDER_HOME_SKILLS[runtime] ?? UNIVERSAL_SKILLS;
+  try {
+    await ensureManagedDirectory(home.dir, `${skillName}`);
+    await atomicWriteManagedFile(home.dir, `${skillName}/SKILL.md`, content, 420);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e?.message ?? e) };
+  }
+}
 async function readWorkspaceFile(agentId, rel) {
   const file = safe(agentId, rel);
   if (!file) return { error: "invalid path" };
@@ -9054,6 +9066,12 @@ conn = new Connection(serverUrl, apiKey, (msg) => {
       break;
     case "agent:skills:list":
       void listSkills(msg.agentId, msg.runtime, msg.projectPath).then((r) => conn.send({ type: "skills:list", requestId: msg.requestId, agentId: msg.agentId, ...r }));
+      break;
+    case "skills:write":
+      void writeAssignedSkill(String(msg.agentId ?? ""), String(msg.runtime ?? "claude"), String(msg.skillName ?? ""), String(msg.content ?? "")).then(
+        (r) => conn.send({ type: "skills:written", requestId: msg.requestId, ...r }),
+        (cause) => conn.send({ type: "skills:written", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) })
+      );
       break;
     case "project:resolve":
       void resolveProjectDirectory(msg.path).then(

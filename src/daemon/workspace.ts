@@ -136,6 +136,24 @@ export async function listSkills(agentId: string, runtime = "claude", projectPat
   return { global, workspace };
 }
 
+/**
+ * Materialize an assigned skill into the agent's provider skills dir (e.g. ~/.claude/skills/<name>/SKILL.md)
+ * so the runtime actually loads it. Uses the agent's HOME provider dir; returns an error if the runtime
+ * has no known skills dir (kimi falls through to the universal dir).
+ */
+export async function writeAssignedSkill(agentId: string, runtime: string, skillName: string, content: string): Promise<{ ok: boolean; error?: string }> {
+  if (!skillName || !/^[a-z0-9][a-z0-9-]*$/.test(skillName)) return { ok: false, error: "invalid skill name" };
+  if (!content) return { ok: false, error: "skill content required" };
+  const home = PROVIDER_HOME_SKILLS[runtime] ?? UNIVERSAL_SKILLS;
+  try {
+    await ensureManagedDirectory(home.dir, `${skillName}`);
+    await atomicWriteManagedFile(home.dir, `${skillName}/SKILL.md`, content, 0o644);
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: String(e?.message ?? e) };
+  }
+}
+
 export async function readWorkspaceFile(agentId: string, rel: string) {
   const file = safe(agentId, rel);
   if (!file) return { error: "invalid path" };

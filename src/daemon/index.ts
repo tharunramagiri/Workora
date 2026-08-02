@@ -7,7 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { Connection } from "./connection.js";
 import { AgentManager } from "./agentManager.js";
-import { listWorkspace, readWorkspaceFile, writeWorkspaceFile, deleteWorkspaceFile, listSkills } from "./workspace.js";
+import { listWorkspace, readWorkspaceFile, writeWorkspaceFile, deleteWorkspaceFile, listSkills, writeAssignedSkill } from "./workspace.js";
 import { detectRuntimes } from "./runtimes.js";
 import { listModels } from "./listModels.js";
 import { createLogger } from "../log.js";
@@ -124,6 +124,10 @@ conn = new Connection(serverUrl, apiKey, (msg) => {
     case "agent:workspace:write": void writeWorkspaceFile(msg.agentId, msg.path ?? "", msg.content ?? "").then((r) => conn.send({ type: "workspace:file_write", requestId: msg.requestId, agentId: msg.agentId, ...r })); break;
     case "agent:workspace:delete": void deleteWorkspaceFile(msg.agentId, msg.path ?? "").then((r) => conn.send({ type: "workspace:file_delete", requestId: msg.requestId, agentId: msg.agentId, ...r })); break;
     case "agent:skills:list": void listSkills(msg.agentId, msg.runtime, msg.projectPath).then((r) => conn.send({ type: "skills:list", requestId: msg.requestId, agentId: msg.agentId, ...r })); break;
+    case "skills:write": void writeAssignedSkill(String(msg.agentId ?? ""), String(msg.runtime ?? "claude"), String(msg.skillName ?? ""), String(msg.content ?? "")).then(
+      (r) => conn.send({ type: "skills:written", requestId: msg.requestId, ...r }),
+      (cause) => conn.send({ type: "skills:written", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) }),
+    ); break;
     case "project:resolve": void resolveProjectDirectory(msg.path).then(
       (projectPath) => conn.send({ type: "project:resolved", requestId: msg.requestId, projectPath }),
       (cause) => conn.send({ type: "project:resolved", requestId: msg.requestId, error: String(cause instanceof Error ? cause.message : cause), code: cause instanceof ProjectDirectoryError ? cause.code : "invalid_project_path" }),
