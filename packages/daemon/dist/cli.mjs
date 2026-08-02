@@ -8889,6 +8889,18 @@ async function checkoutBranch(clonePath, branch) {
     return { ok: false, error: errMsg(e), code: "git_checkout_failed" };
   }
 }
+async function runProjectTests(clonePath, command) {
+  try {
+    assertInsideRoots(clonePath);
+    const hasComposer = await fs4.stat(path19.join(clonePath, "composer.json")).then(() => true).catch(() => false);
+    const hasPackage = await fs4.stat(path19.join(clonePath, "package.json")).then(() => true).catch(() => false);
+    const cmd = command || (hasComposer ? "sh -c 'composer install --no-interaction --prefer-dist 2>/dev/null; php artisan test --stop-on-failure 2>&1 || true'" : hasPackage ? "npm test 2>&1 || true" : "true");
+    const r = await exec("/bin/sh", ["-c", cmd], { cwd: clonePath, timeout: 18e4, maxBuffer: 8 * 1024 * 1024 }).catch((e) => e);
+    return { ok: true, output: String(r?.stdout ?? "").slice(-8e3), code: r?.code ?? 0, command: cmd };
+  } catch (e) {
+    return { ok: false, error: errMsg(e), code: "git_test_failed" };
+  }
+}
 async function git(cwd, args2) {
   const r = await exec(GIT, args2, { cwd, timeout: 6e4, maxBuffer: 4 * 1024 * 1024 });
   return r.stdout;
@@ -9096,6 +9108,12 @@ conn = new Connection(serverUrl, apiKey, (msg) => {
       void checkoutBranch(String(msg.clonePath ?? ""), String(msg.branch ?? "main")).then(
         (result) => conn.send({ type: "git:checkout", requestId: msg.requestId, ...result }),
         (cause) => conn.send({ type: "git:checkout", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) })
+      );
+      break;
+    case "git:test":
+      void runProjectTests(String(msg.clonePath ?? ""), typeof msg.command === "string" ? msg.command : void 0).then(
+        (result) => conn.send({ type: "git:tested", requestId: msg.requestId, ...result }),
+        (cause) => conn.send({ type: "git:tested", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) })
       );
       break;
     case "probe-models":

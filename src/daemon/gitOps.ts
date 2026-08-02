@@ -169,6 +169,21 @@ export async function checkoutBranch(clonePath: string, branch: string): Promise
   }
 }
 
+/** Run a project's test/lint command (best-effort) and return trimmed output. */
+export async function runProjectTests(clonePath: string, command?: string): Promise<GitOpResult> {
+  try {
+    assertInsideRoots(clonePath);
+    // Detect default test command from common manifests; always bounded.
+    const hasComposer = await fs.stat(path.join(clonePath, "composer.json")).then(() => true).catch(() => false);
+    const hasPackage = await fs.stat(path.join(clonePath, "package.json")).then(() => true).catch(() => false);
+    const cmd = command || (hasComposer ? "sh -c 'composer install --no-interaction --prefer-dist 2>/dev/null; php artisan test --stop-on-failure 2>&1 || true'" : hasPackage ? "npm test 2>&1 || true" : "true");
+    const r = await exec("/bin/sh", ["-c", cmd], { cwd: clonePath, timeout: 180_000, maxBuffer: 8 * 1024 * 1024 }).catch((e: any) => e);
+    return { ok: true, output: String(r?.stdout ?? "").slice(-8000), code: r?.code ?? 0, command: cmd };
+  } catch (e) {
+    return { ok: false, error: errMsg(e), code: "git_test_failed" };
+  }
+}
+
 async function git(cwd: string, args: string[]): Promise<string> {
   const r = await exec(GIT, args, { cwd, timeout: 60_000, maxBuffer: 4 * 1024 * 1024 });
   return r.stdout;

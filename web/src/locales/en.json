@@ -682,6 +682,8 @@
     "newBranch": "new branch",
     "assign": "Bind",
     "bindDone": "Agent bound and started. It will work on this repo.",
-    "bindFailed": "Could not bind: {error}"
+    "bindFailed": "Could not bind: {error}",
+    "test": "Test",
+    "testing": "Testing…"
   }
 }

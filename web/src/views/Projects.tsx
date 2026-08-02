@@ -44,6 +44,8 @@ export function Projects() {
   const [creatingChannel, setCreatingChannel] = useState<string | null>(null);
   const [bindingAgent, setBindingAgent] = useState<string | null>(null);
   const [bindMsg, setBindMsg] = useState("");
+  const [testing, setTesting] = useState(false);
+  const [testOutput, setTestOutput] = useState("");
 
   const inactiveAgents = agents.filter((a) => a.status === "inactive" || a.status === "sleeping");
 
@@ -137,6 +139,16 @@ export function Projects() {
     setSyncing(false);
   };
 
+  const runTests = async () => {
+    if (!cur) return;
+    setTesting(true); setTestOutput("");
+    try {
+      const r = await api("POST", `/api/projects/${cur.id}/test`, {});
+      setTestOutput(String(r?.output ?? r?.error ?? "no output"));
+    } catch (e: any) { setTestOutput(String(e?.message ?? e)); }
+    finally { setTesting(false); }
+  };
+
   const doPush = async () => {
     if (!cur) return;
     setPushing(true);
@@ -186,6 +198,7 @@ export function Projects() {
             <div className="head"><h1>{cur.name}</h1><small>{cur.repoUrl} · {statusLabel(cur)}</small>
               <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
                 {cur.channelId && <button className="action-btn" onClick={() => nav(`/s/${slug}/channel/${cur.channelId}`)}>{t("projects.openChannel")}</button>}
+                <button className="action-btn" disabled={testing} onClick={() => void runTests()}>{testing ? t("projects.testing") : t("projects.test")}</button>
                 <button className="action-btn" disabled={syncing} onClick={() => void sync()}>{syncing ? "…" : t("projects.sync")}</button>
                 <button className="danger-btn" onClick={() => void remove()}>{t("projects.remove")}</button>
               </div>
@@ -196,6 +209,7 @@ export function Projects() {
                 <div className="kv"><b>{t("projects.clonePath")}</b> <code>{cur.clonePath}</code></div>
                 {cur.lastCommit && <div className="kv"><b>{t("projects.lastCommit")}</b> <code>{cur.lastCommit}</code></div>}
                 {cur.lastError && <div className="form-err">{t("projects.error")}: {cur.lastError}</div>}
+                {testOutput && <pre className="project-test-out" style={{ marginTop: 10, fontSize: 12, maxHeight: 200, overflow: "auto", background: "var(--surface-strong)", padding: 10, borderRadius: 8 }}>{testOutput}</pre>}
               </div>
 
               {branches && branches.length > 0 && (

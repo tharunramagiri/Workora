@@ -14,7 +14,7 @@ import { createLogger } from "../log.js";
 import { machineIdFile } from "../paths.js";
 import { AGENT_CONTROL_ACK_CAPABILITY, DELIVERY_ADMISSION_CAPABILITY, PROJECT_BROWSER_CAPABILITY, PROJECT_DIRECTORY_CAPABILITY } from "../daemonProtocol.js";
 import { browseProjectDirectories, ProjectDirectoryError, resolveProjectDirectory } from "./projectDirectory.js";
-import { cloneRepo, repoStatus, pullRepo, commitAndPush, ensureProjectsRootDir, listBranches, checkoutBranch } from "./gitOps.js";
+import { cloneRepo, repoStatus, pullRepo, commitAndPush, ensureProjectsRootDir, listBranches, checkoutBranch, runProjectTests } from "./gitOps.js";
 
 const log = createLogger("daemon");
 const DELIVERY_PENDING_HEARTBEAT_MS = Math.max(250, Number(process.env.OPEN_WORKORA_DELIVERY_PENDING_HEARTBEAT_MS ?? 750));
@@ -160,6 +160,10 @@ conn = new Connection(serverUrl, apiKey, (msg) => {
     case "git:checkout": void checkoutBranch(String(msg.clonePath ?? ""), String(msg.branch ?? "main")).then(
       (result) => conn.send({ type: "git:checkout", requestId: msg.requestId, ...result }),
       (cause) => conn.send({ type: "git:checkout", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) }),
+    ); break;
+    case "git:test": void runProjectTests(String(msg.clonePath ?? ""), typeof msg.command === "string" ? msg.command : undefined).then(
+      (result) => conn.send({ type: "git:tested", requestId: msg.requestId, ...result }),
+      (cause) => conn.send({ type: "git:tested", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) }),
     ); break;
     case "probe-models": void listModels(msg.runtime ?? "").then((models) => conn.send({ type: "models", requestId: msg.requestId, runtime: msg.runtime, models })).catch((e) => conn.send({ type: "models", requestId: msg.requestId, runtime: msg.runtime, models: null, error: String((e as any)?.message ?? e) })); break;
     case "agent:resource-budget": conn.send({ type: "agent:resource-budget", requestId: msg.requestId, ...mgr.budgetStatus() }); break;

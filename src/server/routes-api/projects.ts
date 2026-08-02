@@ -83,7 +83,7 @@ export async function handleProjects(ctx: ServerCtx): Promise<boolean> {
     }
 
     if (method === "POST") {
-      const sub = /^\/(sync|push|branch-channel|branches|checkout)$/.exec(url.pathname.slice(m[0].length));
+      const sub = /^\/(sync|push|branch-channel|branches|checkout|test)$/.exec(url.pathname.slice(m[0].length));
       if (!sub) return (sendErr(res, 404, "not found"), true);
       const op = sub[1]!;
       if (op === "branch-channel") {
@@ -109,6 +109,13 @@ export async function handleProjects(ctx: ServerCtx): Promise<boolean> {
         if (rpc?.ok !== true) return (sendJson(res, 200, { ok: false, error: rpc?.error ?? "checkout failed" }), true);
         await db.update(schema.projects).set({ lastCommit: rpc.commit ?? null }).where(eq(schema.projects.id, id));
         return (sendJson(res, 200, { ok: true, branch: rpc.branch, commit: rpc.commit }), true);
+      }
+      if (op === "test") {
+        const b = await readJsonSafe(req);
+        const cmd = typeof b.command === "string" && b.command.trim() ? b.command.trim() : undefined;
+        const rpc = await requestDaemonByMachine(row.machineId, { type: "git:test", clonePath: row.clonePath, command: cmd }, 190_000);
+        if (rpc?.ok !== true) return (sendJson(res, 200, { ok: false, error: rpc?.error ?? "test run failed", output: rpc?.output ?? "" }), true);
+        return (sendJson(res, 200, { ok: true, output: rpc.output ?? "", code: rpc.code, command: rpc.command }), true);
       }
       if (op === "sync") {
         const rpc = await requestDaemonByMachine(row.machineId, { type: "git:pull", clonePath: row.clonePath, branch: row.defaultBranch }, 60_000);
