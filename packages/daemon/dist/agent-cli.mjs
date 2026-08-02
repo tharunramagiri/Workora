@@ -3461,7 +3461,7 @@ checkpoint.command("resume").description("list recent checkpoints for this proje
   console.log(out || "No checkpoints yet.");
 });
 var project = program2.command("project").description("git workflow for the bound project (imported repo)");
-project.command("push").description("commit all changes and push to a feature branch on the project's remote").option("--branch <b>", "branch to push (default: workora/<agent>/<task>)").option("--message <m>", "commit message (default: workora: agent changes)").option("--create-channel", "also create the #<repo>-<branch> channel for review").action(async (opts) => {
+project.command("push").description("commit all changes and push to a feature branch on the project's remote").option("--branch <b>", "branch to push (default: workora/<agent>/<task>)").option("--message <m>", "commit message (default: workora: agent changes)").option("--no-channel", "skip creating the #<repo>-<branch> review channel (created by default)").action(async (opts) => {
   const projectPath = process.env.OPEN_WORKORA_PROJECT_PATH ?? "";
   if (!projectPath) {
     console.error("Error: not bound to a project (OPEN_WORKORA_PROJECT_PATH unset)");
@@ -3486,14 +3486,17 @@ project.command("push").description("commit all changes and push to a feature br
   await run(["checkout", "-B", branch]);
   await run(["add", "-A"]);
   const committed = await run(["commit", "-m", message2]);
-  if (committed === "__NO_CHANGES__") {
-    console.log(`No changes to push on ${branch} (nothing committed).`);
+  const hadNewCommit = committed !== "__NO_CHANGES__";
+  const pushResult = await exec("git", ["push", "-u", "origin", branch], { cwd: projectPath }).catch((e) => ({ error: e }));
+  const pushed = !("error" in pushResult);
+  if (!pushed) console.error(`git push failed: ${String(pushResult.error?.stderr || pushResult.error?.message)}`);
+  const commit = (await run(["rev-parse", "--short", "HEAD"])).trim();
+  if (!hadNewCommit && !pushed) {
+    console.log(`No changes to push on ${branch} (nothing committed, push failed or nothing new).`);
     return;
   }
-  const out = await run(["push", "-u", "origin", branch]);
-  const commit = (await run(["rev-parse", "--short", "HEAD"])).trim();
   console.log(`Pushed ${branch} (${commit}) to origin.`);
-  if (opts.createChannel) {
+  if (opts.channel !== false) {
     try {
       const d = await api("POST", "/agent-api/project/push", { branch, message: message2, commit });
       console.log(`Channel: ${d.channel?.name ?? "n/a"}`);

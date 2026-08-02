@@ -164,8 +164,10 @@ async function ensureProjectChannel(serverId: string, userId: string, projectNam
   }
 }
 
-/** Create (or find) the #<repo>-<branch> channel for a project+branch. Idempotent. */
-async function ensureProjectBranchChannel(serverId: string, userId: string, project: typeof schema.projects.$inferSelect, branch: string): Promise<{ id: string; name: string } | null> {
+/** Create (or find) the #<repo>-<branch> channel for a project+branch. Idempotent. Exported for
+ *  the agent-side push route (routes-agent.ts), so a channel is created regardless of whether the
+ *  agent pushed via the human API or committed directly and only called `git push`. */
+export async function ensureProjectBranchChannel(serverId: string, userId: string, project: typeof schema.projects.$inferSelect, branch: string): Promise<{ id: string; name: string } | null> {
   const chanName = `${project.name.replace(/[^a-z0-9-]/gi, "").toLowerCase().slice(0, 40)}-${branch.replace(/[^a-z0-9-]/gi, "").toLowerCase().slice(0, 24)}`;
   const existing = (await db.select().from(schema.channels).where(and(eq(schema.channels.serverId, serverId), eq(schema.channels.name, chanName))))[0];
   if (existing) return { id: existing.id, name: existing.name };

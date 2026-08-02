@@ -5,6 +5,7 @@ import { db, schema } from "../db/index.js";
 import { sendJson, sendErr, readJson, bearer, agentIdHeader } from "./util.js";
 import { resolveAgent } from "./auth.js";
 import { createMessage, resolveTarget, channelMembers, addChannelMembers, addReaction, removeReaction, getOrCreateThread, unclaimTask, claimTask, setTaskStatus, convertMessageToTask, TASK_STATUSES, resolveMessageId, canAgentReadChannel, descTooLong, DESC_TOO_LONG, assignTask, resolveIdOrPrefix, wakeAgentForReplyCoordination } from "./core.js";
+import { ensureProjectBranchChannel } from "./routes-api/projects.js";
 import { agentHasScope } from "./scopes.js";
 import { parseUpload } from "./attachments.js";
 import { readObject } from "./storage.js";
@@ -43,6 +44,7 @@ function requiredScope(p: string): string | null {
   if (p === "/agent-api/thread/unfollow") return "thread:unfollow";
   if (p === "/agent-api/attachment/view") return "attachment:view";
   if (p === "/agent-api/profile/show") return "server:read";
+  if (p === "/agent-api/project/push") return "message:read"; // no dedicated scope; matches other low-risk read-ish agent actions
   if (p === "/agent-api/action/prepare") return "action:prepare";
   // profile/update has no scope requirement (own profile)
   return null;
@@ -711,6 +713,22 @@ export async function handleAgentApi(req: IncomingMessage, res: ServerResponse, 
     const u = who ? (await db.select().from(schema.users).where(eq(schema.users.name, who)))[0] : null;
     if (u) return (sendJson(res, 200, { type: "user", name: u.name, displayName: u.displayName, description: u.description }), true);
     return (sendErr(res, 404, "profile not found"), true);
+  }
+
+  // Agent called `Workora project push ... --create-channel` (or the daemon/UI push path). Finds the
+  // project this agent is bound to (by matching agent.projectPath to a project's clonePath) and
+  // ensures the #<repo>-<branch> review channel exists — idempotent, so it's safe even if the branch
+  // channel was already created by the human-facing POST /api/projects/:id/push route.
+  if (p === "/agent-api/project/push" && method === "POST") {
+    const b = await readJson(req);
+    const branch = String(b.branch ?? "").trim();
+    if (!branch) return (sendErr(res, 400, "branch required"), true);
+    if (!agent.projectPath) return (sendErr(res, 409, "agent is not bound to a project"), true);
+    const project = (await db.select().from(schema.projects).where(and(eq(schema.projects.serverId, serverId), eq(schema.projects.clonePath, agent.projectPath))))[0];
+    if (!project) return (sendErr(res, 404, "no project matches this agent's bound path"), true);
+    const chan = await ensureProjectBranchChannel(serverId, project.createdByUserId, project, branch);
+    if (!chan) return (sendJson(res, 200, { ok: false, error: "channel creation failed" }), true);
+    return (sendJson(res, 200, { ok: true, channel: chan }), true);
   }
   // profile update: update own displayName/description/avatarUrl
   if (p === "/agent-api/profile/update" && method === "POST") {

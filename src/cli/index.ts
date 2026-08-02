@@ -336,7 +336,7 @@ const project = program.command("project").description("git workflow for the bou
 project.command("push").description("commit all changes and push to a feature branch on the project's remote")
   .option("--branch <b>", "branch to push (default: workora/<agent>/<task>)")
   .option("--message <m>", "commit message (default: workora: agent changes)")
-  .option("--create-channel", "also create the #<repo>-<branch> channel for review")
+  .option("--no-channel", "skip creating the #<repo>-<branch> review channel (created by default)")
   .action(async (opts) => {
     const projectPath = process.env.OPEN_WORKORA_PROJECT_PATH ?? "";
     if (!projectPath) { console.error("Error: not bound to a project (OPEN_WORKORA_PROJECT_PATH unset)"); console.error("Next action: bind an agent to a project in the Projects tab, or ask the owner to import the repo"); process.exit(1); }
@@ -346,14 +346,24 @@ project.command("push").description("commit all changes and push to a feature br
     const { promisify } = await import("node:util");
     const exec = promisify(execFile);
     const run = async (args: string[]) => { try { return (await exec("git", args, { cwd: projectPath })).stdout; } catch (e: any) { const msg = String(e?.stderr || e?.message || e); if (/nothing to commit|no changes added/i.test(msg)) return "__NO_CHANGES__"; console.error(`git ${args[0]} failed: ${msg}`); process.exit(1); } };
+    // Best-effort: the caller may already be on the branch with a prior commit (e.g. after manually
+    // committing before running `push`). checkout -B is safe either way — it doesn't touch history.
     await run(["checkout", "-B", branch]);
     await run(["add", "-A"]);
     const committed = await run(["commit", "-m", message]);
-    if (committed === "__NO_CHANGES__") { console.log(`No changes to push on ${branch} (nothing committed).`); return; }
-    const out = await run(["push", "-u", "origin", branch]);
+    const hadNewCommit = committed !== "__NO_CHANGES__";
+    // Always attempt the push — the branch may carry commits from an earlier `git commit` the agent
+    // ran directly (not just ones made by this invocation). `git push` is a safe no-op if there's
+    // nothing new for origin.
+    const pushResult = await exec("git", ["push", "-u", "origin", branch], { cwd: projectPath }).catch((e: any) => ({ error: e }));
+    const pushed = !("error" in pushResult);
+    if (!pushed) console.error(`git push failed: ${String((pushResult as any).error?.stderr || (pushResult as any).error?.message)}`);
     const commit = (await run(["rev-parse", "--short", "HEAD"])).trim();
+    if (!hadNewCommit && !pushed) { console.log(`No changes to push on ${branch} (nothing committed, push failed or nothing new).`); return; }
     console.log(`Pushed ${branch} (${commit}) to origin.`);
-    if (opts.createChannel) {
+    // Create the review channel by default — this is the fix for the gap where agents that commit
+    // manually (bypassing --create-channel) never got a channel. Opt out with --no-channel.
+    if (opts.channel !== false) {
       try {
         const d = await api("POST", "/agent-api/project/push", { branch, message, commit });
         console.log(`Channel: ${d.channel?.name ?? "n/a"}`);
