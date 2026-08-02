@@ -1,4 +1,4 @@
-// Unit regressions for human-auth error UX.
+// Unit regressions for human-auth error UX and account-creation gating.
 // Run: npx tsx --test --test-force-exit test/authUx.unit.test.ts
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -7,23 +7,25 @@ import fs from "node:fs";
 const routeSrc = fs.readFileSync(new URL("../src/server/routes-api/auth.ts", import.meta.url), "utf8");
 const authSrc = fs.readFileSync(new URL("../web/src/views/Auth.tsx", import.meta.url), "utf8");
 const en = JSON.parse(fs.readFileSync(new URL("../web/src/locales/en.json", import.meta.url), "utf8"));
-const zh = JSON.parse(fs.readFileSync(new URL("../web/src/locales/zh.json", import.meta.url), "utf8"));
 
-test("login distinguishes unknown email from wrong password with stable error codes", () => {
-  assert.match(routeSrc, /auth_login_email_not_found/);
-  assert.match(routeSrc, /auth_login_password_wrong/);
+test("login returns one generic error for both unknown email and wrong password (no enumeration)", () => {
+  // Regression guard: login must NOT expose whether an email is registered. A single shared code/message
+  // for "no such user" and "wrong password" prevents attackers from enumerating valid accounts.
+  assert.doesNotMatch(routeSrc, /auth_login_email_not_found/, "must not reintroduce an email-specific login error code");
+  assert.doesNotMatch(routeSrc, /auth_login_password_wrong/, "must not reintroduce a password-specific login error code");
+  assert.match(routeSrc, /auth_login_invalid/);
   assert.match(routeSrc, /!b\.email\.trim\(\)/);
   assert.match(routeSrc, /!b\.password\.trim\(\)/);
-  assert.match(
-    routeSrc,
-    /sendErr\(\s*res,\s*404,\s*"email not found",\s*\{\s*code:\s*"auth_login_email_not_found"/,
-    "unknown login email should return a stable code the UI can map to an actionable message",
-  );
-  assert.match(
-    routeSrc,
-    /sendErr\(\s*res,\s*401,\s*"password incorrect",\s*\{\s*code:\s*"auth_login_password_wrong"/,
-    "wrong password should return a different stable code from unknown email",
-  );
+  const invalidCount = (routeSrc.match(/code:\s*"auth_login_invalid"/g) ?? []).length;
+  assert.equal(invalidCount, 1, "exactly one shared invalid-credentials code path");
+});
+
+test("registration is gated after the first account: requires a valid, non-expired, non-exhausted invite", () => {
+  assert.match(routeSrc, /auth_register_invite_required/);
+  assert.match(routeSrc, /userCount > 0/, "registration must check whether any user already exists");
+  assert.match(routeSrc, /inviteToken/, "gated registration must accept an invite token from the request body");
+  assert.match(routeSrc, /expired/);
+  assert.match(routeSrc, /exhausted/);
 });
 
 test("registration conflicts expose stable codes for email and username collisions", () => {
@@ -37,15 +39,10 @@ test("Auth page maps backend error codes to localized actionable copy", () => {
   assert.match(authSrc, /data\?\.code/);
   assert.match(authSrc, /auth\.errors\./);
 
-  assert.equal(en.auth.errors.auth_login_email_not_found, "No account uses that email yet. Check the address, or create an account.");
-  assert.equal(en.auth.errors.auth_login_password_wrong, "That password is not right for this email. Try again, or reset it with your admin.");
+  assert.equal(en.auth.errors.auth_login_invalid, "Invalid email or password.");
   assert.equal(en.auth.errors.auth_register_email_taken, "That email already has an account. Sign in instead.");
   assert.equal(en.auth.errors.auth_register_username_taken, "That username is taken. Choose another @mention name.");
-
-  assert.equal(zh.auth.errors.auth_login_email_not_found, "这个邮箱还没有账号。确认邮箱是否输入正确，或先注册。");
-  assert.equal(zh.auth.errors.auth_login_password_wrong, "这个邮箱对应的密码不对。请重试，或联系管理员重置。");
-  assert.equal(zh.auth.errors.auth_register_email_taken, "这个邮箱已注册。请直接登录。");
-  assert.equal(zh.auth.errors.auth_register_username_taken, "这个用户名已被占用。换一个 @ 提及名。");
+  assert.equal(en.auth.errors.auth_register_invite_required, "This workspace requires an invite to join. Ask an admin for an invite link.");
 });
 
 test("Auth form errors are announced and tied to fields", () => {

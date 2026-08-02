@@ -57,10 +57,24 @@ export async function handlePublicAuth(ctx: BaseCtx): Promise<boolean> {
     await db.update(schema.users).set(patch).where(eq(schema.users.id, admin.id));
     return (sendJson(res, 200, { token: signUser(admin.id), user: { id: admin.id, name: admin.name, email: (patch.email as string) ?? admin.email } }), true);
   }
+  // Public self-registration is intentionally gated: this instance is a private company workspace, not an
+  // open SaaS signup. Open registration would let anyone on the internet mint a workspace and account, which is
+  // fine for a fresh local install (no users yet — someone has to become the first admin) but unacceptable once
+  // real accounts exist. So: allowed with no auth only while the users table is still empty (fresh-install
+  // bootstrap); after that, self-registration requires a valid invite token (same joinLinks flow as accept-invite).
   if (p === "/api/auth/register" && method === "POST") {
     const rl = rateLimit("auth:register", clientIp(req), REGISTER_RATE_LIMIT, REGISTER_RATE_WINDOW_MS);
     if (!rl.ok) return (sendErr(res, 429, "too many registrations from this IP — please try again later", { code: "auth_rate_limited", retryAfter: rl.retryAfter }), true);
     const b = await readJson(req);
+    const userCount = (await db.select({ id: schema.users.id }).from(schema.users).limit(1)).length;
+    let inviteLink: typeof schema.joinLinks.$inferSelect | undefined;
+    if (userCount > 0) {
+      const token = typeof b.inviteToken === "string" ? b.inviteToken : "";
+      inviteLink = token ? (await db.select().from(schema.joinLinks).where(eq(schema.joinLinks.token, token)))[0] : undefined;
+      const expired = !!inviteLink && !!inviteLink.expiresAt && new Date(inviteLink.expiresAt as any).getTime() < Date.now();
+      const exhausted = !!inviteLink && inviteLink.maxUses != null && inviteLink.useCount >= inviteLink.maxUses;
+      if (!inviteLink || expired || exhausted) return (sendErr(res, 403, "registration requires a valid invite", { code: "auth_register_invite_required" }), true);
+    }
     const name = typeof b.name === "string" ? b.name.trim() : "";
     if (!name || name.length > 64) return (sendErr(res, 400, "invalid name", { code: "auth_register_name_invalid" }), true);
     if (!isValidEmail(b.email)) return (sendErr(res, 400, "invalid email", { code: "auth_email_invalid" }), true);
@@ -69,11 +83,17 @@ export async function handlePublicAuth(ctx: BaseCtx): Promise<boolean> {
     const dup = (await db.select().from(schema.users).where(or(eq(schema.users.email, b.email), eq(schema.users.name, name))))[0];
     if (dup) return (sendErr(res, 409, dup.email === b.email ? "email already registered" : "username already taken", { code: dup.email === b.email ? "auth_register_email_taken" : "auth_register_username_taken" }), true);
     const [u] = await db.insert(schema.users).values({ name, displayName: typeof b.displayName === "string" && b.displayName.trim() ? b.displayName.trim() : name, email: b.email, passwordHash: hashPassword(String(b.password)) }).returning();
-    await createServer(`${name}'s workspace`, `u-${u!.id.slice(0, 8)}`, u!.id); // Create personal workspace on registration (aligned with dev-login; without it, entering the app with no server causes bootstrap to crash)
+    if (inviteLink) {
+      // Joining via invite: add them to the inviting workspace instead of minting a brand-new one, and burn a use.
+      await db.insert(schema.serverMembers).values({ serverId: inviteLink.serverId, userId: u!.id, role: inviteLink.role ?? "member" }).onConflictDoNothing();
+      await db.update(schema.joinLinks).set({ useCount: inviteLink.useCount + 1 }).where(eq(schema.joinLinks.id, inviteLink.id));
+    } else {
+      await createServer(`${name}'s workspace`, `u-${u!.id.slice(0, 8)}`, u!.id); // Fresh-install bootstrap: first user gets their own workspace (aligned with dev-login; without it, entering the app with no server causes bootstrap to crash)
+    }
     return (sendJson(res, 200, { token: signUser(u!.id), user: { id: u!.id, name: u!.name } }), true);
   }
-  // Login: return stable, user-actionable error codes. This intentionally distinguishes an unknown email from a
-  // wrong password for self-hosted workspace UX; the endpoint remains rate-limited to reduce enumeration/brute-force abuse.
+  // Login: a single generic error for both "no such email" and "wrong password" — distinguishing them lets an
+  // attacker enumerate which emails have accounts on this instance. Rate-limited on top as defense in depth.
   if (p === "/api/auth/login" && method === "POST") {
     const rl = rateLimit("auth:login", clientIp(req));
     if (!rl.ok) return (sendErr(res, 429, "too many requests", { code: "auth_rate_limited", retryAfter: rl.retryAfter }), true);
@@ -81,8 +101,9 @@ export async function handlePublicAuth(ctx: BaseCtx): Promise<boolean> {
     if (typeof b.email !== "string" || typeof b.password !== "string" || !b.email.trim() || !b.password.trim()) return (sendErr(res, 400, "email and password required", { code: "auth_login_fields_required" }), true);
     if (!isValidEmail(b.email)) return (sendErr(res, 400, "invalid email", { code: "auth_email_invalid" }), true);
     const u = (await db.select().from(schema.users).where(eq(schema.users.email, b.email)))[0];
-    if (!u) return (sendErr(res, 404, "email not found", { code: "auth_login_email_not_found" }), true);
-    if (!verifyPassword(b.password, u.passwordHash)) return (sendErr(res, 401, "password incorrect", { code: "auth_login_password_wrong" }), true);
+    const invalid = () => (sendErr(res, 401, "invalid email or password", { code: "auth_login_invalid" }), true);
+    if (!u || !u.passwordHash) return invalid();
+    if (!verifyPassword(b.password, u.passwordHash)) return invalid();
     return (sendJson(res, 200, { token: signUser(u.id), user: { id: u.id, name: u.name } }), true);
   }
   // Invite info (public, no auth required): the /join/:token landing page uses this to display "X invited you to join workspace Y"
