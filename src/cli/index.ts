@@ -345,7 +345,7 @@ project.command("push").description("commit all changes and push to a feature br
     const { execFile } = await import("node:child_process");
     const { promisify } = await import("node:util");
     const exec = promisify(execFile);
-    const run = async (args: string[]) => { try { return (await exec("git", args, { cwd: projectPath })).stdout; } catch (e: any) { const msg = String(e?.stderr || e?.message || e); if (/nothing to commit|no changes added/i.test(msg)) return "__NO_CHANGES__"; console.error(`git ${args[0]} failed: ${msg}`); process.exit(1); } };
+    const run = async (args: string[]) => { try { return (await exec("git", args, { cwd: projectPath })).stdout; } catch (e: any) { const msg = String(e?.stderr || e?.stdout || e?.message || e); if (/nothing to commit|no changes added/i.test(msg)) return "__NO_CHANGES__"; console.error(`git ${args[0]} failed: ${msg}`); process.exit(1); } };
     // Best-effort: the caller may already be on the branch with a prior commit (e.g. after manually
     // committing before running `push`). checkout -B is safe either way — it doesn't touch history.
     await run(["checkout", "-B", branch]);

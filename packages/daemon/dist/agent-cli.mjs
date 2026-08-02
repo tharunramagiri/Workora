@@ -3477,7 +3477,7 @@ project.command("push").description("commit all changes and push to a feature br
     try {
       return (await exec("git", args, { cwd: projectPath })).stdout;
     } catch (e) {
-      const msg = String(e?.stderr || e?.message || e);
+      const msg = String(e?.stderr || e?.stdout || e?.message || e);
       if (/nothing to commit|no changes added/i.test(msg)) return "__NO_CHANGES__";
       console.error(`git ${args[0]} failed: ${msg}`);
       process.exit(1);
