@@ -92,17 +92,9 @@ export async function handleProjects(ctx: ServerCtx): Promise<boolean> {
         const b = await readJsonSafe(req);
         const branch = String(b.branch ?? "").trim();
         if (!branch) return (sendErr(res, 400, "branch required"), true);
-        const chanName = `${row.name.replace(/[^a-z0-9-]/gi, "").toLowerCase().slice(0, 40)}-${branch.replace(/[^a-z0-9-]/gi, "").toLowerCase().slice(0, 24)}`;
-        const existing = (await db.select().from(schema.channels).where(and(eq(schema.channels.serverId, serverId), eq(schema.channels.name, chanName))))[0];
-        if (existing) return (sendJson(res, 200, { id: existing.id, name: existing.name, existing: true }), true);
-        const [ch] = await db.insert(schema.channels).values({
-          serverId, name: chanName, type: "channel",
-          description: `Branch channel for ${row.name} (${branch}) — patches, review, and merge discussion. Auto-created on push.`,
-        }).returning();
-        await db.insert(schema.channelMembers).values([{ channelId: ch!.id, memberType: "user", memberId: userId }]).onConflictDoNothing();
-        const agents = await db.select().from(schema.agents).where(and(eq(schema.agents.serverId, serverId), isNull(schema.agents.deletedAt)));
-        if (agents.length) await db.insert(schema.channelMembers).values(agents.map((a) => ({ channelId: ch!.id, memberType: "agent", memberId: a.id }))).onConflictDoNothing();
-        return (sendJson(res, 200, { id: ch!.id, name: ch!.name }), true);
+        const chan = await ensureProjectBranchChannel(serverId, userId, row, branch);
+        if (!chan) return (sendJson(res, 200, { ok: false, error: "channel creation failed" }), true);
+        return (sendJson(res, 200, { id: chan.id, name: chan.name }), true);
       }
       if (op === "branches") {
         const rpc = await requestDaemonByMachine(row.machineId, { type: "git:branches", clonePath: row.clonePath }, 30_000);
@@ -132,7 +124,9 @@ export async function handleProjects(ctx: ServerCtx): Promise<boolean> {
         const rpc = await requestDaemonByMachine(row.machineId, { type: "git:push", clonePath: row.clonePath, branch, message, author }, 60_000);
         if (rpc?.ok !== true) return (sendJson(res, 200, { ok: false, error: rpc?.error ?? "push failed" }), true);
         await db.update(schema.projects).set({ lastCommit: rpc.commit ?? null, lastSyncedAt: new Date() }).where(eq(schema.projects.id, id));
-        return (sendJson(res, 200, { ok: true, commit: rpc.commit, branch: rpc.branch }), true);
+        // Auto-create the branch review channel (idempotent) so patches + review live with the branch.
+        const chan = await ensureProjectBranchChannel(serverId, userId, row, branch);
+        return (sendJson(res, 200, { ok: true, commit: rpc.commit, branch: rpc.branch, channel: chan ?? null }), true);
       }
     }
   }
@@ -154,13 +148,29 @@ async function ensureProjectChannel(serverId: string, userId: string, projectNam
   if (existing) return { id: existing.id };
   try {
     const [ch] = await db.insert(schema.channels).values({ serverId, name: channelName, description: `Engineering channel for ${projectName} (auto-created on import)`, type: "channel" }).returning();
-    // Add the creator + all agents so the fleet can see it.
     await db.insert(schema.channelMembers).values([{ channelId: ch!.id, memberType: "user", memberId: userId }]).onConflictDoNothing();
     const agents = await db.select().from(schema.agents).where(and(eq(schema.agents.serverId, serverId), isNull(schema.agents.deletedAt)));
-    if (agents.length) {
-      await db.insert(schema.channelMembers).values(agents.map((a) => ({ channelId: ch!.id, memberType: "agent", memberId: a.id }))).onConflictDoNothing();
-    }
+    if (agents.length) await db.insert(schema.channelMembers).values(agents.map((a) => ({ channelId: ch!.id, memberType: "agent", memberId: a.id }))).onConflictDoNothing();
     return { id: ch!.id };
+  } catch {
+    return null;
+  }
+}
+
+/** Create (or find) the #<repo>-<branch> channel for a project+branch. Idempotent. */
+async function ensureProjectBranchChannel(serverId: string, userId: string, project: typeof schema.projects.$inferSelect, branch: string): Promise<{ id: string; name: string } | null> {
+  const chanName = `${project.name.replace(/[^a-z0-9-]/gi, "").toLowerCase().slice(0, 40)}-${branch.replace(/[^a-z0-9-]/gi, "").toLowerCase().slice(0, 24)}`;
+  const existing = (await db.select().from(schema.channels).where(and(eq(schema.channels.serverId, serverId), eq(schema.channels.name, chanName))))[0];
+  if (existing) return { id: existing.id, name: existing.name };
+  try {
+    const [ch] = await db.insert(schema.channels).values({
+      serverId, name: chanName, type: "channel",
+      description: `Branch channel for ${project.name} (${branch}) — patches, review, and merge discussion. Auto-created on push.`,
+    }).returning();
+    await db.insert(schema.channelMembers).values([{ channelId: ch!.id, memberType: "user", memberId: userId }]).onConflictDoNothing();
+    const agents = await db.select().from(schema.agents).where(and(eq(schema.agents.serverId, serverId), isNull(schema.agents.deletedAt)));
+    if (agents.length) await db.insert(schema.channelMembers).values(agents.map((a) => ({ channelId: ch!.id, memberType: "agent", memberId: a.id }))).onConflictDoNothing();
+    return { id: ch!.id, name: ch!.name };
   } catch {
     return null;
   }

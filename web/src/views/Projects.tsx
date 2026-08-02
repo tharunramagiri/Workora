@@ -22,7 +22,7 @@ type Project = {
 
 export function Projects() {
   const { t } = useTranslation();
-  const { api, slug, machines } = useStore();
+  const { api, slug, machines, agents } = useStore();
   const nav = useNavigate();
 
   const [projects, setProjects] = useState<Project[] | null>(null);
@@ -42,6 +42,10 @@ export function Projects() {
   const [loadingBranches, setLoadingBranches] = useState(false);
   const [switchingBranch, setSwitchingBranch] = useState(false);
   const [creatingChannel, setCreatingChannel] = useState<string | null>(null);
+  const [bindingAgent, setBindingAgent] = useState<string | null>(null);
+  const [bindMsg, setBindMsg] = useState("");
+
+  const inactiveAgents = agents.filter((a) => a.status === "inactive" || a.status === "sleeping");
 
   const onlineMachines = machines.filter((m) => m.status === "online");
   const cur = selected;
@@ -93,6 +97,20 @@ export function Projects() {
       if (r?.id) nav(`/s/${slug}/channel/${r.id}`);
     } catch { /* ignore */ }
     finally { setCreatingChannel(null); }
+  };
+
+  const bindAgent = async (agentId: string) => {
+    if (!cur) return;
+    setBindingAgent(agentId); setBindMsg("");
+    try {
+      // Bind the (inactive) agent to this project's clone path, then start it.
+      const p = await api("PATCH", `/api/agents/${agentId}`, { projectPath: cur.clonePath });
+      if (p?.ok) {
+        await api("POST", `/api/agents/${agentId}/start`, {});
+        setBindMsg(t("projects.bindDone"));
+      } else setBindMsg(t("projects.bindFailed", { error: String(p?.error ?? "") }));
+    } catch (e: any) { setBindMsg(String(e?.message ?? e)); }
+    finally { setBindingAgent(null); }
   };
 
   const openImport = () => { setErr(""); setRepoUrl(""); setName(""); setShowImport(true); };
@@ -196,6 +214,24 @@ export function Projects() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {inactiveAgents.length > 0 && (
+                <div className="card" style={{ marginBottom: 14 }}>
+                  <h3>{t("projects.assignAgent")}</h3>
+                  <p className="muted" style={{ marginTop: 4 }}>{t("projects.assignAgentHint")}</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
+                    {inactiveAgents.map((a) => (
+                      <div key={a.id} className="project-branch" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ flex: 1 }}>{a.name}</span>
+                        <button className="action-btn" disabled={bindingAgent === a.id} onClick={() => void bindAgent(a.id)}>
+                          {bindingAgent === a.id ? "…" : t("projects.assign")}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {bindMsg && <p className="muted" style={{ marginTop: 8 }}>{bindMsg}</p>}
                 </div>
               )}
 

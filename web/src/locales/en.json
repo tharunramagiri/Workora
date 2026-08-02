@@ -679,6 +679,9 @@
     "checkout": "Switch",
     "branchChannel": "Open branch channel",
     "createChannel": "Open channel",
-    "newBranch": "new branch"
+    "newBranch": "new branch",
+    "assign": "Bind",
+    "bindDone": "Agent bound and started. It will work on this repo.",
+    "bindFailed": "Could not bind: {error}"
   }
 }
