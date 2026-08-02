@@ -89,6 +89,34 @@ export const agents = pgTable("agents", {
   nameUniq: uniqueIndex("agents_name_uniq").on(t.serverId, t.name).where(sql`${t.deletedAt} is null`),
 }));
 
+// ── Skill marketplace (OpenWork-Den style) ─────────────────────────────
+// A server-wide catalog of publishable skills (workflows/scripts the agents use). Skills are
+// authored as vendorable SKILL.md in the repo or via the API; assignments bind a skill to an
+// agent in a workspace so it's writable into the agent's skills dir. This is the monetization
+// layer: publish → assign → agents gain capabilities.
+export const skills = pgTable("skills", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  serverId: uuid("server_id").notNull().references(() => servers.id),
+  createdByUserId: uuid("created_by_user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),                       // skill name (kebab-case), e.g. "test-and-push"
+  description: text("description").default(""),       // what it does (for the marketplace card)
+  content: text("content").notNull(),                 // the SKILL.md markdown body (frontmatter + steps)
+  vendor: text("vendor").default("workspace").notNull(), // workspace | hub | npm
+  published: boolean("published").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  byServer: index("skills_server_idx").on(t.serverId),
+  uniq: uniqueIndex("skills_server_name_uniq").on(t.serverId, t.name),
+}));
+
+// Which agents a skill is assigned to (per workspace name; idempotent).
+export const skillAssignments = pgTable("skill_assignments", {
+  skillId: uuid("skill_id").notNull().references(() => skills.id, { onDelete: "cascade" }),
+  agentId: uuid("agent_id").notNull().references(() => agents.id, { onDelete: "cascade" }),
+  serverId: uuid("server_id").notNull().references(() => servers.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({ pk: primaryKey({ columns: [t.skillId, t.agentId] }) }));
+
 // ── Channel / DM / Thread ───────────────────────────────────────
 export const channels = pgTable("channels", {
   id: uuid("id").defaultRandom().primaryKey(),

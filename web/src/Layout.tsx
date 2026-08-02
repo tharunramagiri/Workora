@@ -14,6 +14,7 @@ const SECTIONS = [
   { key: "channel", Icon: IconChat, labelKey: "nav.channel" },
   { key: "tasks", Icon: IconTasks, labelKey: "nav.tasks" },
   { key: "agent", Icon: IconUsers, labelKey: "nav.members" },
+  { key: "skill", Icon: IconWrench, labelKey: "nav.skills" },
   { key: "project", Icon: IconProject, labelKey: "nav.projects" },
   { key: "computer", Icon: IconMonitor, labelKey: "nav.computers" },
 ];

@@ -8,7 +8,8 @@
     "computers": "Computers",
     "settings": "Settings",
     "alerts": "Alerts",
-    "projects": "Projects"
+    "projects": "Projects",
+    "skills": "Skills"
   },
   "alerts": {
     "title": "Notifications",
@@ -685,5 +686,21 @@
     "bindFailed": "Could not bind: {error}",
     "test": "Test",
     "testing": "Testing…"
+  },
+  "skills": {
+    "title": "Skills",
+    "subtitle": "Publish reusable capabilities and assign them to agents — like a skill marketplace for your company.",
+    "publish": "Publish skill",
+    "name": "Skill name",
+    "namePlaceholder": "e.g. test-and-push",
+    "desc": "Description",
+    "content": "SKILL.md content",
+    "publishBtn": "Publish",
+    "empty": "No skills published yet. Publish reusable capabilities agents can use.",
+    "assigned": "Assigned to",
+    "assignTo": "Assign",
+    "unassign": "Unassign",
+    "noAgents": "No agents to assign to.",
+    "delete": "Delete"
   }
 }
