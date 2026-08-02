@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://workora.dev/sitemap.xml
+Sitemap: https://office.ramagiritharun.in/sitemap.xml

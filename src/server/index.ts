@@ -65,7 +65,7 @@ const log = createLogger("server");
 initRealtime();
 
 const CTYPE: Record<string, string> = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".woff2": "font/woff2", ".map": "application/json", ".webmanifest": "application/manifest+json" };
-async function serveStatic(res: import("node:http").ServerResponse, pathname: string): Promise<boolean> {
+async function serveStatic(res: import("node:http").ServerResponse, pathname: string, sendBody = true): Promise<boolean> {
   const rel = pathname === "/" ? "/index.html" : pathname;
   let file = path.join(WEBDIST, rel);
   if (!file.startsWith(WEBDIST)) file = path.join(WEBDIST, "index.html");
@@ -76,7 +76,7 @@ async function serveStatic(res: import("node:http").ServerResponse, pathname: st
     try { data = await readFile(path.join(WEBDIST, "index.html")); ext = ".html"; } catch { return false; }
   }
   res.writeHead(200, { "content-type": CTYPE[ext] || "application/octet-stream" });
-  res.end(data); return true;
+  res.end(sendBody ? data : undefined); return true;
 }
 
 async function serveDocs(res: import("node:http").ServerResponse, pathname: string, sendBody = true): Promise<boolean> {
@@ -125,7 +125,10 @@ const server = http.createServer(async (req, res) => {
     if (isRead && url.pathname.startsWith("/docs/") && await serveDocs(res, url.pathname, method === "GET")) return;
     if (isRead && url.pathname.startsWith("/_astro/") && await serveDocsAsset(res, url.pathname, method === "GET")) return;
     // Static frontend (web/dist) + SPA fallback (client-side routing /s/:server/*)
-    if (method === "GET" && await serveStatic(res, url.pathname)) return;
+    // HEAD is handled too (not just GET): social/link-preview crawlers (Twitter, Slack, etc.) often
+    // send a HEAD request first to check content-type before fetching og-image/etc — a HEAD-only 404
+    // here would break rich link previews even though the GET works fine.
+    if (isRead && await serveStatic(res, url.pathname, method === "GET")) return;
     sendErr(res, 404, "not found");
   } catch (e: any) {
     // Postgres 22P02 (invalid text representation — e.g. a non-uuid client id cast into a uuid column,
