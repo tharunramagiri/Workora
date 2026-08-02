@@ -44,6 +44,7 @@ export function Projects() {
   const [creatingChannel, setCreatingChannel] = useState<string | null>(null);
 
   const onlineMachines = machines.filter((m) => m.status === "online");
+  const cur = selected;
 
   // Auto-select the first online machine when opening the import modal.
   useEffect(() => {
@@ -93,8 +94,6 @@ export function Projects() {
     } catch { /* ignore */ }
     finally { setCreatingChannel(null); }
   };
-
-  const cur = selected;
 
   const openImport = () => { setErr(""); setRepoUrl(""); setName(""); setShowImport(true); };
 
