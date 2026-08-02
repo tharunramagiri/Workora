@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useStore } from "../store.tsx";
 import { IconProject } from "../icons.tsx";
+import { Plus } from "lucide-react";
 import { PaneEmpty } from "../PaneEmpty.tsx";
 
 type Project = {
@@ -26,6 +27,7 @@ export function Projects() {
 
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [selected, setSelected] = useState<Project | null>(null);
+  const [showImport, setShowImport] = useState(false);
   const [repoUrl, setRepoUrl] = useState("");
   const [name, setName] = useState("");
   const [machineId, setMachineId] = useState("");
@@ -38,10 +40,10 @@ export function Projects() {
 
   const onlineMachines = machines.filter((m) => m.status === "online");
 
-  // Auto-select the first online machine (most setups have exactly one); still overridable.
+  // Auto-select the first online machine when opening the import modal.
   useEffect(() => {
-    if (!machineId && onlineMachines.length > 0) setMachineId(onlineMachines[0]!.id);
-  }, [onlineMachines.length]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (showImport && !machineId && onlineMachines.length > 0) setMachineId(onlineMachines[0]!.id);
+  }, [showImport, onlineMachines.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = useCallback(async () => {
     try { const list = await api("GET", "/api/projects"); setProjects(Array.isArray(list) ? list : []); }
@@ -55,6 +57,8 @@ export function Projects() {
 
   const cur = selected;
 
+  const openImport = () => { setErr(""); setRepoUrl(""); setName(""); setShowImport(true); };
+
   const importRepo = async () => {
     setErr("");
     if (!repoUrl.trim()) { setErr(t("projects.repoUrlError")); return; }
@@ -62,8 +66,8 @@ export function Projects() {
     setBusy(true);
     try {
       const r = await api("POST", "/api/projects", { repoUrl: repoUrl.trim(), name: name.trim() || undefined, machineId });
-      if (r?.status === "error") setErr(t("projects.importFailed", { error: String(r?.error ?? "") }));
-      setRepoUrl(""); setName("");
+      if (r?.status === "error") { setErr(t("projects.importFailed", { error: String(r?.error ?? "") })); return; }
+      setShowImport(false); setRepoUrl(""); setName("");
       await load();
     } catch (e: any) { setErr(String(e?.message ?? e)); }
     finally { setBusy(false); }
@@ -102,49 +106,35 @@ export function Projects() {
     <>
       <aside className="sidebar">
         <div className="sb-scroll">
-        <div className="sb-title">{t("nav.projects")}</div>
-        <div className="sec">{t("projects.importRepo")} <span className="cnt">{projects?.length ?? 0}</span></div>
-        {projects?.length ? projects.map((p) => (
-          <button key={p.id} className={"item" + (p.id === cur?.id ? " active" : "")} onClick={() => setSelected(p)}>
-            <IconProject size={15} /><span className="grow">{p.name}</span><span className={"dot " + (p.status === "ready" ? "online" : p.status === "cloning" ? "" : "")} />
-          </button>
-        )) : <div className="empty">{t("projects.empty")}</div>}
+          <div className="sb-title">{t("nav.projects")}</div>
+          <div className="sec">{t("nav.projects")} <span className="cnt">{projects?.length ?? 0}</span><button className="addbtn" title={t("projects.importRepo")} onClick={openImport}>+</button></div>
+          {projects?.length ? projects.map((p) => (
+            <button key={p.id} className={"item" + (p.id === cur?.id ? " active" : "")} onClick={() => setSelected(p)}>
+              <IconProject size={15} /><span className="grow">{p.name}</span><span className={"dot " + (p.status === "ready" ? "online" : "")} />
+            </button>
+          )) : <div className="empty">{t("projects.empty")}</div>}
         </div>
       </aside>
       <main className="content-col">
-        <div className="head">
-          <h1>{cur ? cur.name : t("nav.projects")}</h1>
-          <small>{cur ? `${cur.repoUrl} · ${statusLabel(cur)}` : t("projects.subtitle")}</small>
-          {cur && (
-            <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-              {cur.channelId && <button className="action-btn" onClick={() => nav(`/s/${slug}/channel/${cur.channelId}`)}>{t("projects.openChannel")}</button>}
-              <button className="action-btn" disabled={syncing} onClick={() => void sync()}>{syncing ? "…" : t("projects.sync")}</button>
-              <button className="danger-btn" onClick={() => void remove()}>{t("projects.remove")}</button>
+        {!cur ? (
+          <>
+            <div className="head"><h1>{t("nav.projects")}</h1></div>
+            <div className="scroll">
+              <PaneEmpty icon={<IconProject size={30} />} title={t("projects.empty")} sub={t("projects.subtitle")}
+                action={onlineMachines.length ? <button className="pe-cta" onClick={openImport}><Plus size={15} /> {t("projects.importRepo")}</button>
+                  : <span className="muted">{t("projects.noMachines")}</span>} />
             </div>
-          )}
-        </div>
-        <div className="scroll">
-          {!cur ? (
-            <>
-              <div className="card" style={{ marginBottom: 14 }}>
-                <h3>{t("projects.importRepo")}</h3>
-                <div className="project-import-row" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <input className="inp" style={{ flex: "2 1 260px" }} placeholder={t("projects.repoUrl")} value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} />
-                  <input className="inp" style={{ flex: "1 1 140px" }} placeholder={t("projects.nameOptional")} value={name} onChange={(e) => setName(e.target.value)} />
-                  <select className="inp" style={{ flex: "1 1 140px" }} value={machineId} onChange={(e) => setMachineId(e.target.value)}>
-                    <option value="">{t("projects.chooseMachine")}</option>
-                    {onlineMachines.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                  </select>
-                  <button className="ok" disabled={busy || onlineMachines.length === 0} onClick={() => void importRepo()}>{busy ? t("projects.importing") : t("projects.import")}</button>
-                </div>
-                {onlineMachines.length === 0 && <p className="form-err">{t("projects.noMachines")}</p>}
-                {err && <p className="form-err">{err}</p>}
+          </>
+        ) : (
+          <>
+            <div className="head"><h1>{cur.name}</h1><small>{cur.repoUrl} · {statusLabel(cur)}</small>
+              <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+                {cur.channelId && <button className="action-btn" onClick={() => nav(`/s/${slug}/channel/${cur.channelId}`)}>{t("projects.openChannel")}</button>}
+                <button className="action-btn" disabled={syncing} onClick={() => void sync()}>{syncing ? "…" : t("projects.sync")}</button>
+                <button className="danger-btn" onClick={() => void remove()}>{t("projects.remove")}</button>
               </div>
-              <PaneEmpty icon={<IconProject size={30} />} title={t("projects.empty")} sub={t("projects.subtitle")} />
-            </>
-          ) : (
-            <>
-              {err && <div className="form-err" style={{ marginBottom: 14 }}>{err}</div>}
+            </div>
+            <div className="scroll">
               <div className="card" style={{ marginBottom: 14 }}>
                 <div className="kv"><b>{t("projects.branch")}</b> {cur.defaultBranch}</div>
                 <div className="kv"><b>{t("projects.clonePath")}</b> <code>{cur.clonePath}</code></div>
@@ -153,17 +143,40 @@ export function Projects() {
               </div>
               <div className="card">
                 <h3>{t("projects.push")}</h3>
-                <div className="project-import-row" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div className="kv" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <input className="inp" style={{ flex: "1 1 160px" }} placeholder={t("projects.pushBranch")} value={pushBranch} onChange={(e) => setPushBranch(e.target.value)} />
                   <input className="inp" style={{ flex: "2 1 220px" }} placeholder={t("projects.pushMessage")} value={pushMsg} onChange={(e) => setPushMsg(e.target.value)} />
                   <button className="ok" disabled={pushing} onClick={() => void doPush()}>{pushing ? "…" : t("projects.push")}</button>
                 </div>
                 <p className="muted" style={{ marginTop: 8 }}>{t("projects.assignAgentHint")}</p>
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </main>
+
+      {showImport && (
+        <div className="modal-bg" onClick={() => setShowImport(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>{t("projects.importRepo")}</h3>
+            <label>{t("projects.repoUrl")}</label>
+            <input autoFocus value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} placeholder="https://github.com/owner/repo" onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) void importRepo(); }} />
+            <label>{t("projects.nameOptional")}</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("projects.nameOptional")} />
+            <label>{t("projects.machine")}</label>
+            <select className="inp" value={machineId} onChange={(e) => setMachineId(e.target.value)}>
+              <option value="">{t("projects.chooseMachine")}</option>
+              {onlineMachines.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
+            {onlineMachines.length === 0 && <p className="form-err">{t("projects.noMachines")}</p>}
+            {err && <p className="form-err">{err}</p>}
+            <div className="acts">
+              <button className="cancel" onClick={() => setShowImport(false)}>{t("misc.connectModalCancel")}</button>
+              <button className="ok" onClick={() => void importRepo()} disabled={busy || onlineMachines.length === 0}>{busy ? t("projects.importing") : t("projects.import")}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
