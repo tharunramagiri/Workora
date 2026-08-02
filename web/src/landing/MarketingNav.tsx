@@ -50,7 +50,6 @@ export function MarketingNav({
   githubLabel = "GitHub",
   enterLabel,
   onEnterWorkspace,
-  languageToggle,
 }: MarketingNavProps) {
   const origin = typeof window !== "undefined" && window.location?.origin ? window.location.origin : undefined;
 

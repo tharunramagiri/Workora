@@ -51,7 +51,8 @@ type FeatureCopy = {
     selfHosted: string;
     docs: string;
     github: string;
-    enter: string;  };
+    enter: string;
+  };
   hero: {
     eyebrow: string;
     title: string;
@@ -88,7 +89,6 @@ export const COPY: Record<Lang, FeatureCopy> = {
       docs: "Docs",
       github: "GitHub",
       enter: "Enter workspace",
-      languageLabel: "Language",
     },
     hero: {
       eyebrow: "Feature showcase",
@@ -336,10 +336,7 @@ export function Features() {
   const cases = copy.cases.items;
   const [activeId, setActiveId] = useState(cases[0]!.id);
   const active = useMemo(() => cases.find((c) => c.id === activeId) ?? cases[0]!, [activeId, cases]);
-  const enterWorkspace = () => navigate(me ? `/s/${slug}/channel` : "/login");  const switchLanguage = () => {
-    void i18n.changeLanguage(nextLang);
-    try { localStorage.setItem("Workora.lang", nextLang); } catch { /* ignore */ }
-  };
+  const enterWorkspace = () => navigate(me ? `/s/${slug}/channel` : "/login");
 
   useEffect(() => {
     if (!cases.some((c) => c.id === activeId)) setActiveId(cases[0]!.id);

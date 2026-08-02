@@ -52,7 +52,7 @@ const PLANNED_RUNTIMES: { name: string; icon: string }[] = [];
 // zero layout shift; the caret rides between typed/rest. reduced-motion → full text, no caret.
 const LANDING_COPY = {
   en: {
-    nav: { features: "Features", capabilities: "Capabilities", engines: "Engines", selfHosted: "Self-hosted", docs: "Docs", github: "GitHub", enter: "Enter workspace", languageLabel: "Language" },
+    nav: { features: "Features", capabilities: "Capabilities", engines: "Engines", selfHosted: "Self-hosted", docs: "Docs", github: "GitHub", enter: "Enter workspace" },
     hero: {
       eyebrow: "The open-source Claude Tag alternative",
       title: "Where your team and its\nAI agents work as one.",
@@ -220,12 +220,9 @@ function HeroCaseDeck({ lang, label }: { lang: Lang; label: string }) {
 export function Landing() {
   const { me, slug } = useStore();
   const navigate = useNavigate();
-  const [lang, setLang] = useState<Lang>(() => detectLandingLang());
+  const [lang] = useState<Lang>(() => detectLandingLang());
   const enterWorkspace = () => navigate(me ? `/s/${slug}/channel` : "/login");
-  const copy = LANDING_COPY.en;  const switchLanguage = () => {
-    setLang(nextLang);
-    try { localStorage.setItem("Workora.lang", nextLang); } catch { /* ignore */ }
-  };
+  const copy = LANDING_COPY[lang];
   const origin = typeof window !== "undefined" && window.location?.origin ? window.location.origin : undefined;
   const docsHref = resolveDocsHref(origin);
 

@@ -1,6 +1,6 @@
 import { useEffect, useState, type Dispatch, type MouseEvent as RMouseEvent, type SetStateAction } from "react";
 import { Outlet, useLocation, useParams, useNavigate } from "react-router-dom";
-import { IconSearch, IconChat, IconTasks, IconUsers, IconMonitor, IconSettings, IconInbox, IconProject } from "./icons.tsx";
+import { IconSearch, IconChat, IconTasks, IconUsers, IconMonitor, IconSettings, IconInbox, IconProject, IconWrench } from "./icons.tsx";
 import { useStore } from "./store.tsx";
 import { ServerSwitcher } from "./ServerSwitcher.tsx";
 import { QuickSwitcher } from "./QuickSwitcher.tsx";
