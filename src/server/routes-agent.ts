@@ -15,6 +15,8 @@ import { validateDecisionInput } from "./replyCoordinationPolicy.js";
 import { canonicalReplyTriggerMessageId } from "./conversationTurns.js";
 import { conversationTurnDeliveryBlockReason } from "./daemonHub.js";
 import { isConversationTurnCapabilityPaused } from "./conversationTurnRecovery.js";
+import { mailEnabled, sendMail } from "./mail.js";
+import { rateLimit } from "./ratelimit.js";
 
 // Freshness-hold draft buffer (prevents agent↔agent duplicate replies): when the agent sends
 // and new messages have arrived since last read → save as draft + surface bounded context, do not post immediately.
@@ -46,6 +48,7 @@ function requiredScope(p: string): string | null {
   if (p === "/agent-api/profile/show") return "server:read";
   if (p === "/agent-api/project/push") return "message:read"; // no dedicated scope; matches other low-risk read-ish agent actions
   if (p === "/agent-api/action/prepare") return "action:prepare";
+  if (p === "/agent-api/notify/email") return "notify:email";
   // profile/update has no scope requirement (own profile)
   return null;
 }
@@ -729,6 +732,30 @@ export async function handleAgentApi(req: IncomingMessage, res: ServerResponse, 
     const chan = await ensureProjectBranchChannel(serverId, project.createdByUserId, project, branch);
     if (!chan) return (sendJson(res, 200, { ok: false, error: "channel creation failed" }), true);
     return (sendJson(res, 200, { ok: true, channel: chan }), true);
+  }
+  // Email the workspace owner — the only recipient allowed. `to` is never taken from the agent; this
+  // prevents a compromised/misbehaving agent from using this server as a spam relay to arbitrary
+  // addresses. Requires server-side SMTP env config (SMTP_HOST/USER/PASS); if unset, 501 so the caller
+  // gets a clear "not configured" signal instead of a silent no-op.
+  if (p === "/agent-api/notify/email" && method === "POST") {
+    if (!mailEnabled()) return (sendErr(res, 501, "email is not configured on this workspace"), true);
+    const rl = rateLimit("agent:notify-email", agent.id, 10, 60 * 60 * 1000); // 10/hour/agent — reports, not spam
+    if (!rl.ok) return (sendErr(res, 429, "too many emails from this agent — try again later", { retryAfter: rl.retryAfter }), true);
+    const b = await readJson(req);
+    const subject = typeof b.subject === "string" ? b.subject.trim().slice(0, 200) : "";
+    const text = typeof b.text === "string" ? b.text.trim().slice(0, 20_000) : "";
+    if (!subject) return (sendErr(res, 400, "subject required"), true);
+    if (!text) return (sendErr(res, 400, "text required"), true);
+    const server = (await db.select().from(schema.servers).where(eq(schema.servers.id, serverId)))[0];
+    if (!server) return (sendErr(res, 404, "workspace not found"), true);
+    const owner = (await db.select().from(schema.users).where(eq(schema.users.id, server.ownerId)))[0];
+    if (!owner?.email) return (sendErr(res, 409, "workspace owner has no email on file"), true);
+    try {
+      const { messageId } = await sendMail({ to: owner.email, subject: `[${server.name}/${agent.name}] ${subject}`, text, fromLabel: agent.displayName || agent.name });
+      return (sendJson(res, 200, { ok: true, messageId }), true);
+    } catch (e: any) {
+      return (sendErr(res, 502, `email send failed: ${e?.message ?? e}`), true);
+    }
   }
   // profile update: update own displayName/description/avatarUrl
   if (p === "/agent-api/profile/update" && method === "POST") {

@@ -3539,6 +3539,21 @@ project.command("checkout").description("switch the bound project to a branch").
     process.exit(1);
   }
 });
+var notify = program2.command("notify").description("notify the workspace owner outside the app");
+notify.command("email").description("email the workspace owner (body from stdin) \u2014 requires server-side SMTP config; use sparingly for reports/incidents, not routine chatter").requiredOption("--subject <s>", "email subject line").action(async (opts) => {
+  const text = (await readStdin()).trim();
+  if (!text) {
+    console.error("Error: email body required on stdin");
+    process.exit(1);
+  }
+  try {
+    const d = await api("POST", "/agent-api/notify/email", { subject: opts.subject, text });
+    console.log(`Sent (${d.messageId ?? "ok"}).`);
+  } catch (e) {
+    console.error(`Email failed: ${e?.message ?? e}`);
+    process.exit(1);
+  }
+});
 program2.parseAsync(process.argv).catch((e) => {
   console.error("Error:", e?.message ?? e);
   process.exit(1);
