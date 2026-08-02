@@ -330,4 +330,57 @@ checkpoint.command("resume").description("list recent checkpoints for this proje
     console.log(out || "No checkpoints yet.");
   });
 
+// project: agent-side git workflow for imported repos (buzz-style: agents push work directly).
+// Requires the agent to be bound to a project (OPEN_WORKORA_PROJECT_PATH set by the daemon).
+const project = program.command("project").description("git workflow for the bound project (imported repo)");
+project.command("push").description("commit all changes and push to a feature branch on the project's remote")
+  .option("--branch <b>", "branch to push (default: workora/<agent>/<task>)")
+  .option("--message <m>", "commit message (default: workora: agent changes)")
+  .option("--create-channel", "also create the #<repo>-<branch> channel for review")
+  .action(async (opts) => {
+    const projectPath = process.env.OPEN_WORKORA_PROJECT_PATH ?? "";
+    if (!projectPath) { console.error("Error: not bound to a project (OPEN_WORKORA_PROJECT_PATH unset)"); console.error("Next action: bind an agent to a project in the Projects tab, or ask the owner to import the repo"); process.exit(1); }
+    const branch = opts.branch || `workora/${AGENT || "agent"}/task`;
+    const message = opts.message || "workora: agent changes";
+    const { execFile } = await import("node:child_process");
+    const { promisify } = await import("node:util");
+    const exec = promisify(execFile);
+    const run = async (args: string[]) => { try { return (await exec("git", args, { cwd: projectPath })).stdout; } catch (e: any) { const msg = String(e?.stderr || e?.message || e); if (/nothing to commit|no changes added/i.test(msg)) return "__NO_CHANGES__"; console.error(`git ${args[0]} failed: ${msg}`); process.exit(1); } };
+    await run(["checkout", "-B", branch]);
+    await run(["add", "-A"]);
+    const committed = await run(["commit", "-m", message]);
+    if (committed === "__NO_CHANGES__") { console.log(`No changes to push on ${branch} (nothing committed).`); return; }
+    const out = await run(["push", "-u", "origin", branch]);
+    const commit = (await run(["rev-parse", "--short", "HEAD"])).trim();
+    console.log(`Pushed ${branch} (${commit}) to origin.`);
+    if (opts.createChannel) {
+      try {
+        const d = await api("POST", "/agent-api/project/push", { branch, message, commit });
+        console.log(`Channel: ${d.channel?.name ?? "n/a"}`);
+      } catch { console.log("Channel creation skipped (no project binding on server)."); }
+    }
+  });
+project.command("branches").description("list branches on the bound project").action(async () => {
+  const projectPath = process.env.OPEN_WORKORA_PROJECT_PATH ?? "";
+  if (!projectPath) { console.error("Error: not bound to a project"); process.exit(1); }
+  const { execFile } = await import("node:child_process");
+  const { promisify } = await import("node:util");
+  const exec = promisify(execFile);
+  try {
+    const out = (await exec("git", ["branch", "-a"], { cwd: projectPath })).stdout;
+    console.log(out);
+  } catch (e: any) { console.error(`git branch failed: ${e?.stderr ?? e?.message ?? e}`); process.exit(1); }
+});
+project.command("checkout").description("switch the bound project to a branch").requiredOption("--branch <b>").action(async (opts) => {
+  const projectPath = process.env.OPEN_WORKORA_PROJECT_PATH ?? "";
+  if (!projectPath) { console.error("Error: not bound to a project"); process.exit(1); }
+  const { execFile } = await import("node:child_process");
+  const { promisify } = await import("node:util");
+  const exec = promisify(execFile);
+  try {
+    await exec("git", ["checkout", "-B", opts.branch], { cwd: projectPath });
+    console.log(`Checked out ${opts.branch}`);
+  } catch (e: any) { console.error(`git checkout failed: ${e?.stderr ?? e?.message ?? e}`); process.exit(1); }
+});
+
 program.parseAsync(process.argv).catch((e) => { console.error("Error:", e?.message ?? e); process.exit(1); });

@@ -135,6 +135,40 @@ export async function commitAndPush(clonePath: string, branch: string, message: 
   }
 }
 
+/** List branches (local + remote) so the UI/agent can pick a working branch. */
+export async function listBranches(clonePath: string): Promise<GitOpResult> {
+  try {
+    assertInsideRoots(clonePath);
+    await git(clonePath, ["fetch", "--all", "--prune"]).catch(() => { /* offline fetch is fine */ });
+    const local = await git(clonePath, ["for-each-ref", "--format=%(refname:short)", "refs/heads"]);
+    const remote = await git(clonePath, ["for-each-ref", "--format=%(refname:short)", "refs/remotes/origin"]);
+    const current = await git(clonePath, ["rev-parse", "--abbrev-ref", "HEAD"]).then((b) => b.trim());
+    const locals = local.split("\n").filter(Boolean);
+    const remotes = [...new Set(remote.split("\n").filter(Boolean).map((r) => r.replace(/^origin\//, "")).filter((r) => !locals.includes(r)))];
+    return { ok: true, current, branches: [...locals, ...remotes], local: locals, remote: remotes };
+  } catch (e) {
+    return { ok: false, error: errMsg(e), code: "git_branches_failed" };
+  }
+}
+
+/** Switch the clone to a branch (creating it from origin/<branch> or current HEAD if missing). */
+export async function checkoutBranch(clonePath: string, branch: string): Promise<GitOpResult> {
+  try {
+    assertInsideRoots(clonePath);
+    const exists = await git(clonePath, ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`]).then(() => true).catch(() => false);
+    if (!exists) {
+      const remoteHas = await git(clonePath, ["rev-parse", "--verify", "--quiet", `refs/remotes/origin/${branch}`]).then(() => true).catch(() => false);
+      await git(clonePath, remoteHas ? ["checkout", "-B", branch, `origin/${branch}`] : ["checkout", "-B", branch]);
+    } else {
+      await git(clonePath, ["checkout", branch]);
+    }
+    const commit = await git(clonePath, ["rev-parse", "--short", "HEAD"]).then((b) => b.trim());
+    return { ok: true, branch, commit };
+  } catch (e) {
+    return { ok: false, error: errMsg(e), code: "git_checkout_failed" };
+  }
+}
+
 async function git(cwd: string, args: string[]): Promise<string> {
   const r = await exec(GIT, args, { cwd, timeout: 60_000, maxBuffer: 4 * 1024 * 1024 });
   return r.stdout;

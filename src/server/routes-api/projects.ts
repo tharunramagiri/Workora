@@ -83,7 +83,7 @@ export async function handleProjects(ctx: ServerCtx): Promise<boolean> {
     }
 
     if (method === "POST") {
-      const sub = /^\/(sync|push|branch-channel)$/.exec(url.pathname.slice(m[0].length));
+      const sub = /^\/(sync|push|branch-channel|branches|checkout)$/.exec(url.pathname.slice(m[0].length));
       if (!sub) return (sendErr(res, 404, "not found"), true);
       const op = sub[1]!;
       if (op === "branch-channel") {
@@ -103,6 +103,20 @@ export async function handleProjects(ctx: ServerCtx): Promise<boolean> {
         const agents = await db.select().from(schema.agents).where(and(eq(schema.agents.serverId, serverId), isNull(schema.agents.deletedAt)));
         if (agents.length) await db.insert(schema.channelMembers).values(agents.map((a) => ({ channelId: ch!.id, memberType: "agent", memberId: a.id }))).onConflictDoNothing();
         return (sendJson(res, 200, { id: ch!.id, name: ch!.name }), true);
+      }
+      if (op === "branches") {
+        const rpc = await requestDaemonByMachine(row.machineId, { type: "git:branches", clonePath: row.clonePath }, 30_000);
+        if (rpc?.ok !== true) return (sendJson(res, 200, { ok: false, error: rpc?.error ?? "branches failed" }), true);
+        return (sendJson(res, 200, { ok: true, branches: rpc.branches ?? [], local: rpc.local ?? [], remote: rpc.remote ?? [], current: rpc.current ?? null }), true);
+      }
+      if (op === "checkout") {
+        const b = await readJsonSafe(req);
+        const branch = String(b.branch ?? "").trim();
+        if (!branch) return (sendErr(res, 400, "branch required"), true);
+        const rpc = await requestDaemonByMachine(row.machineId, { type: "git:checkout", clonePath: row.clonePath, branch }, 30_000);
+        if (rpc?.ok !== true) return (sendJson(res, 200, { ok: false, error: rpc?.error ?? "checkout failed" }), true);
+        await db.update(schema.projects).set({ lastCommit: rpc.commit ?? null }).where(eq(schema.projects.id, id));
+        return (sendJson(res, 200, { ok: true, branch: rpc.branch, commit: rpc.commit }), true);
       }
       if (op === "sync") {
         const rpc = await requestDaemonByMachine(row.machineId, { type: "git:pull", clonePath: row.clonePath, branch: row.defaultBranch }, 60_000);

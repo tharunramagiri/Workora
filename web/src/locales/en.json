@@ -675,6 +675,10 @@
     "noMachines": "Connect a machine first (Computers tab) to import a repo.",
     "repoUrlError": "Enter a repo URL first.",
     "chooseMachineError": "Select a machine to clone into.",
-    "importFailed": "Import failed: {error}"
+    "importFailed": "Import failed: {error}",
+    "checkout": "Switch",
+    "branchChannel": "Open branch channel",
+    "createChannel": "Open channel",
+    "newBranch": "new branch"
   }
 }

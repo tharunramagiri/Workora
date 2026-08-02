@@ -37,6 +37,11 @@ export function Projects() {
   const [pushBranch, setPushBranch] = useState("");
   const [pushMsg, setPushMsg] = useState("workora: agent changes");
   const [pushing, setPushing] = useState(false);
+  const [branches, setBranches] = useState<string[] | null>(null);
+  const [currentBranch, setCurrentBranch] = useState("");
+  const [loadingBranches, setLoadingBranches] = useState(false);
+  const [switchingBranch, setSwitchingBranch] = useState(false);
+  const [creatingChannel, setCreatingChannel] = useState<string | null>(null);
 
   const onlineMachines = machines.filter((m) => m.status === "online");
 
@@ -50,10 +55,44 @@ export function Projects() {
     catch { setProjects([]); }
   }, [api]);
 
+  // Load branches whenever the selected project changes.
+  const loadBranches = useCallback(async (p: Project) => {
+    setLoadingBranches(true);
+    try {
+      const r = await api("POST", `/api/projects/${p.id}/branches`, {});
+      if (r?.ok) { setBranches(r.branches ?? []); setCurrentBranch(r.current ?? p.defaultBranch); }
+      else setBranches([]);
+    } catch { setBranches([]); }
+    finally { setLoadingBranches(false); }
+  }, [api]);
+
+  useEffect(() => { if (cur) void loadBranches(cur); else { setBranches(null); setCurrentBranch(""); } }, [cur?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     if (projects && !projects.find((p) => p.id === selected?.id)) setSelected(projects[0] ?? null);
   }, [projects]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const checkout = async (branch: string) => {
+    if (!cur) return;
+    setSwitchingBranch(true);
+    try {
+      const r = await api("POST", `/api/projects/${cur.id}/checkout`, { branch });
+      if (r?.ok) setCurrentBranch(r.branch ?? branch);
+      await load();
+    } catch { /* ignore */ }
+    finally { setSwitchingBranch(false); }
+  };
+
+  const createBranchChannel = async (branch: string) => {
+    if (!cur) return;
+    setCreatingChannel(branch);
+    try {
+      const r = await api("POST", `/api/projects/${cur.id}/branch-channel`, { branch });
+      if (r?.id) nav(`/s/${slug}/channel/${r.id}`);
+    } catch { /* ignore */ }
+    finally { setCreatingChannel(null); }
+  };
 
   const cur = selected;
 
@@ -136,15 +175,39 @@ export function Projects() {
             </div>
             <div className="scroll">
               <div className="card" style={{ marginBottom: 14 }}>
-                <div className="kv"><b>{t("projects.branch")}</b> {cur.defaultBranch}</div>
+                <div className="kv"><b>{t("projects.branch")}</b> {currentBranch || cur.defaultBranch} {loadingBranches && <span className="muted">…</span>}</div>
                 <div className="kv"><b>{t("projects.clonePath")}</b> <code>{cur.clonePath}</code></div>
                 {cur.lastCommit && <div className="kv"><b>{t("projects.lastCommit")}</b> <code>{cur.lastCommit}</code></div>}
                 {cur.lastError && <div className="form-err">{t("projects.error")}: {cur.lastError}</div>}
               </div>
+
+              {branches && branches.length > 0 && (
+                <div className="card" style={{ marginBottom: 14 }}>
+                  <h3>{t("projects.branch")}s</h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
+                    {branches.map((b) => (
+                      <div key={b} className="project-branch" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <code style={{ flex: 1 }}>{b}</code>
+                        {b === currentBranch
+                          ? <span className="badge badge-ok">{t("projects.ready")}</span>
+                          : <button className="action-btn" disabled={switchingBranch} onClick={() => void checkout(b)}>{switchingBranch ? "…" : t("projects.sync")}</button>}
+                        <button className="action-btn" disabled={creatingChannel === b} onClick={() => void createBranchChannel(b)}>
+                          {creatingChannel === b ? "…" : t("projects.openChannel")}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="card">
                 <h3>{t("projects.push")}</h3>
                 <div className="kv" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <input className="inp" style={{ flex: "1 1 160px" }} placeholder={t("projects.pushBranch")} value={pushBranch} onChange={(e) => setPushBranch(e.target.value)} />
+                  <select className="inp" style={{ flex: "1 1 160px" }} value={pushBranch || currentBranch} onChange={(e) => setPushBranch(e.target.value)}>
+                    {pushBranch === "" && <option value="">{t("projects.pushBranch")}</option>}
+                    {(branches ?? []).filter((b) => b !== pushBranch).map((b) => <option key={b} value={b}>{b}</option>)}
+                    <option value={`workora/${cur.name}/agent`}>workora/{cur.name}/agent (new)</option>
+                  </select>
                   <input className="inp" style={{ flex: "2 1 220px" }} placeholder={t("projects.pushMessage")} value={pushMsg} onChange={(e) => setPushMsg(e.target.value)} />
                   <button className="ok" disabled={pushing} onClick={() => void doPush()}>{pushing ? "…" : t("projects.push")}</button>
                 </div>

@@ -8858,6 +8858,37 @@ async function commitAndPush(clonePath, branch, message, author) {
     return { ok: false, error: msg, code: "git_push_failed" };
   }
 }
+async function listBranches(clonePath) {
+  try {
+    assertInsideRoots(clonePath);
+    await git(clonePath, ["fetch", "--all", "--prune"]).catch(() => {
+    });
+    const local = await git(clonePath, ["for-each-ref", "--format=%(refname:short)", "refs/heads"]);
+    const remote = await git(clonePath, ["for-each-ref", "--format=%(refname:short)", "refs/remotes/origin"]);
+    const current = await git(clonePath, ["rev-parse", "--abbrev-ref", "HEAD"]).then((b) => b.trim());
+    const locals = local.split("\n").filter(Boolean);
+    const remotes = [...new Set(remote.split("\n").filter(Boolean).map((r) => r.replace(/^origin\//, "")).filter((r) => !locals.includes(r)))];
+    return { ok: true, current, branches: [...locals, ...remotes], local: locals, remote: remotes };
+  } catch (e) {
+    return { ok: false, error: errMsg(e), code: "git_branches_failed" };
+  }
+}
+async function checkoutBranch(clonePath, branch) {
+  try {
+    assertInsideRoots(clonePath);
+    const exists = await git(clonePath, ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`]).then(() => true).catch(() => false);
+    if (!exists) {
+      const remoteHas = await git(clonePath, ["rev-parse", "--verify", "--quiet", `refs/remotes/origin/${branch}`]).then(() => true).catch(() => false);
+      await git(clonePath, remoteHas ? ["checkout", "-B", branch, `origin/${branch}`] : ["checkout", "-B", branch]);
+    } else {
+      await git(clonePath, ["checkout", branch]);
+    }
+    const commit = await git(clonePath, ["rev-parse", "--short", "HEAD"]).then((b) => b.trim());
+    return { ok: true, branch, commit };
+  } catch (e) {
+    return { ok: false, error: errMsg(e), code: "git_checkout_failed" };
+  }
+}
 async function git(cwd, args2) {
   const r = await exec(GIT, args2, { cwd, timeout: 6e4, maxBuffer: 4 * 1024 * 1024 });
   return r.stdout;
@@ -9053,6 +9084,18 @@ conn = new Connection(serverUrl, apiKey, (msg) => {
       void ensureProjectsRootDir().then(
         (root) => conn.send({ type: "git:projects-root", requestId: msg.requestId, root }),
         (cause) => conn.send({ type: "git:projects-root", requestId: msg.requestId, error: String(cause instanceof Error ? cause.message : cause) })
+      );
+      break;
+    case "git:branches":
+      void listBranches(String(msg.clonePath ?? "")).then(
+        (result) => conn.send({ type: "git:branches", requestId: msg.requestId, ...result }),
+        (cause) => conn.send({ type: "git:branches", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) })
+      );
+      break;
+    case "git:checkout":
+      void checkoutBranch(String(msg.clonePath ?? ""), String(msg.branch ?? "main")).then(
+        (result) => conn.send({ type: "git:checkout", requestId: msg.requestId, ...result }),
+        (cause) => conn.send({ type: "git:checkout", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) })
       );
       break;
     case "probe-models":
