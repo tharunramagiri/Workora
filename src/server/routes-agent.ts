@@ -49,6 +49,8 @@ function requiredScope(p: string): string | null {
   if (p === "/agent-api/project/push") return "message:read"; // no dedicated scope; matches other low-risk read-ish agent actions
   if (p === "/agent-api/action/prepare") return "action:prepare";
   if (p === "/agent-api/notify/email") return "notify:email";
+  if (p === "/agent-api/knowledge/list" || p === "/agent-api/knowledge/read") return "knowledge:read";
+  if (p === "/agent-api/knowledge/write") return "knowledge:read"; // write is a low-risk durable-memory op; reuse the knowledge scope so a scoped agent can still persist team facts
   // profile/update has no scope requirement (own profile)
   return null;
 }
@@ -716,6 +718,36 @@ export async function handleAgentApi(req: IncomingMessage, res: ServerResponse, 
     const u = who ? (await db.select().from(schema.users).where(eq(schema.users.name, who)))[0] : null;
     if (u) return (sendJson(res, 200, { type: "user", name: u.name, displayName: u.displayName, description: u.description }), true);
     return (sendErr(res, 404, "profile not found"), true);
+  }
+
+  // Knowledge base: agents read + write durable team facts (shared cross-agent memory).
+  //   GET  /agent-api/knowledge/list — list server knowledge (optionally ?agentId=)
+  //   GET  /agent-api/knowledge/read?title=<q> — find an entry by title substring
+  //   POST /agent-api/knowledge/write — { title, content } persist a durable fact
+  if (p === "/agent-api/knowledge/list" && method === "GET") {
+    const filterAgent = url.searchParams.get("agentId")?.trim() || null;
+    const rows = filterAgent
+      ? await db.select().from(schema.knowledge).where(and(eq(schema.knowledge.serverId, serverId), eq(schema.knowledge.agentId, filterAgent))).orderBy(desc(schema.knowledge.createdAt))
+      : await db.select().from(schema.knowledge).where(eq(schema.knowledge.serverId, serverId)).orderBy(desc(schema.knowledge.createdAt));
+    return (sendJson(res, 200, rows.map((k) => ({ id: k.id, title: k.title, content: k.content, agentId: k.agentId }))), true);
+  }
+  if (p === "/agent-api/knowledge/read" && method === "GET") {
+    const q = (url.searchParams.get("title") || "").trim().toLowerCase();
+    if (!q) return (sendJson(res, 200, { entries: [] }), true);
+    const rows = await db.select().from(schema.knowledge).where(and(eq(schema.knowledge.serverId, serverId), ilike(schema.knowledge.searchText, `%${q}%`))).orderBy(desc(schema.knowledge.createdAt)).limit(10);
+    return (sendJson(res, 200, { entries: rows.map((k) => ({ id: k.id, title: k.title, content: k.content, agentId: k.agentId })) }), true);
+  }
+  if (p === "/agent-api/knowledge/write" && method === "POST") {
+    const b = await readJson(req);
+    const title = String(b.title ?? "").trim();
+    const content = String(b.content ?? "").trim();
+    if (!title || !content) return (sendErr(res, 400, "title and content required"), true);
+    if (title.length > 500 || content.length > 20000) return (sendErr(res, 400, "title or content too long"), true);
+    const [row] = await db.insert(schema.knowledge).values({
+      serverId, agentId: agent.id, title, content,
+      searchText: `${title} ${content}`.toLowerCase().slice(0, 20000),
+    }).returning();
+    return (sendJson(res, 200, { ok: true, id: row!.id, title: row!.title }), true);
   }
 
   // Agent called `Workora project push ... --create-channel` (or the daemon/UI push path). Finds the

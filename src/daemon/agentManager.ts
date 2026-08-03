@@ -3,7 +3,7 @@ import { mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { buildSystemPrompt, STARTUP_NUDGE, RESUME_NUDGE, ONE_SHOT_WAKE_NUDGE, inboxNotice } from "./prompt.js";
-import { seedMemory, applyProfileToMemory } from "./memory.js";
+import { seedMemory, seedPersonality, applyProfileToMemory } from "./memory.js";
 import { ensureWorkoraBin } from "./workoraBin.js";
 import { getRuntime } from "./runtimes.js";
 import type { Runtime, RuntimeSession, RuntimeCallbacks } from "./runtime.js";
@@ -369,6 +369,17 @@ export class AgentManager {
     let personality: string | null | undefined;
     try { personality = (await readManagedFile(stateDir, "personality.md")).toString("utf8"); if (!personality.trim()) personality = undefined; }
     catch { personality = undefined; }
+    this.assertStartActive(agentId, attempt);
+
+    // Soul seed: if no personality.md exists, write the default template so the agent
+    // starts with voice/values/boundaries instead of a blank identity. The operator can
+    // overwrite it anytime (the web UI personality editor); this only fills the gap.
+    if (!personality) {
+      try {
+        await atomicWriteManagedFile(stateDir, "personality.md", seedPersonality(config.displayName || config.name, config.description));
+        personality = undefined; // effective description stays the operator-provided role, not the template's default block
+      } catch { /* non-fatal: agent can still start without a seeded soul */ }
+    }
     this.assertStartActive(agentId, attempt);
 
     const effectiveDescription = personality ?? config.description;

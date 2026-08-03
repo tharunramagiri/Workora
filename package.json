@@ -36,6 +36,7 @@
     "db:studio": "drizzle-kit studio",
     "seed": "tsx src/db/seed.ts",
     "seed:dev": "tsx src/db/seed-dev.ts",
+    "seed:skills": "tsx scripts/seed-skills.ts",
     "server": "tsx watch src/server/index.ts",
     "start": "tsx src/server/index.ts",
     "web:build": "npm --prefix web run build",

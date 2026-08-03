@@ -28,6 +28,7 @@ import { handleChannels } from "./channels.js";
 import { handleMessages } from "./messages.js";
 import { handleTasks } from "./tasks.js";
 import { handleProjects } from "./projects.js";
+import { handleKnowledge } from "./knowledge.js";
 import { handleSkills } from "./skills.js";
 
 export async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL, method: string): Promise<boolean> {
@@ -55,6 +56,7 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, url: 
 
   if (await handleAgents(sctx)) return true;
   if (await handleProjects(sctx)) return true;
+  if (await handleKnowledge(sctx)) return true;
   if (await handleSkills(sctx)) return true;
   if (await handleReminders(sctx)) return true;
   if (await handleChannels(sctx)) return true;

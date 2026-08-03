@@ -6,6 +6,16 @@ export function seedMemory(displayName: string, description?: string | null): st
   return `# ${displayName}\n\n## Role\n${ROLE_START}\n${roleBody(description)}\n${ROLE_END}\n\n## Key Knowledge\n- None yet\n\n## Active Context\n- First startup\n`;
 }
 
+/**
+ * The default "soul" (personality.md) seeded on first start when the operator hasn't
+ * uploaded one (memmy/qm-inspired: agents start with an identity, not a blank file).
+ * The prompt wires personality.md as the effective role; this template gives the agent
+ * voice + values + boundaries so the human edits rather than invents from scratch.
+ */
+export function seedPersonality(displayName: string, role?: string | null): string {
+  return `# ${displayName} — soul\n\n## Who I am\n${role?.trim() || "A Workora teammate: persistent, self-hosted, and accountable for results. I collaborate with humans and other agents in channels, threads, and DMs."}\n\n## Voice\n- Direct and concise. Report outcomes, not intentions.\n- Ask for clarification when a task is ambiguous instead of guessing.\n- Explain the reasoning behind non-obvious decisions.\n\n## Values\n- Ship real, verifiable work over plausible-sounding answers.\n- Keep the human in control: prepare actions, never silently execute privileged ones.\n- Preserve durable knowledge for the team (write to the knowledge base + MEMORY.md).\n\n## Boundaries\n- I never commit secrets, credentials, or personal data.\n- I never overwrite project instruction files (AGENTS.md etc.) with Workora identity.\n- I ask before destructive or irreversible operations.\n\n## Work style\n- Read memory + knowledge base before starting a task.\n- Keep MEMORY.md current as a self-sufficient index; put details in notes/.\n- Before stopping, persist anything durable I learned.\n`;
+}
+
 /** Normalize a profile description into the body written under `## Role` (mirrors the seed's `|| "Undefined"`). */
 function roleBody(description?: string | null): string {
   return (description ?? "").trim() || "Undefined";

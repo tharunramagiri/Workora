@@ -177,12 +177,40 @@ export async function runProjectTests(clonePath: string, command?: string): Prom
     const hasComposer = await fs.stat(path.join(clonePath, "composer.json")).then(() => true).catch(() => false);
     const hasPackage = await fs.stat(path.join(clonePath, "package.json")).then(() => true).catch(() => false);
     const cmd = command || (hasComposer ? "sh -c 'composer install --no-interaction --prefer-dist 2>/dev/null; php artisan test --stop-on-failure 2>&1 || true'" : hasPackage ? "npm test 2>&1 || true" : "true");
+    // Command policy (qm borrow): hard-deny destructive / exfil-pattern shell text even when a
+    // caller overrides the command. The route is manageAgents-gated and length-capped upstream;
+    // this is the final daemon-side net so a denied pattern never reaches the shell.
+    const denied = COMMAND_POLICY_DENY.some((pat) => cmd.includes(pat));
+    if (denied) return { ok: false, error: "command denied by policy", code: "git_test_denied" };
     const r = await exec("/bin/sh", ["-c", cmd], { cwd: clonePath, timeout: 180_000, maxBuffer: 8 * 1024 * 1024 }).catch((e: any) => e);
     return { ok: true, output: String(r?.stdout ?? "").slice(-8000), code: r?.code ?? 0, command: cmd };
   } catch (e) {
     return { ok: false, error: errMsg(e), code: "git_test_failed" };
   }
 }
+
+// Predeclared command policy — deny-list of dangerous shell fragments (qm's "hard denials"
+// concept). Matched as substrings against the resolved command string. Keep it conservative:
+// a false positive blocks a test run; a false negative is a host compromise.
+const COMMAND_POLICY_DENY: string[] = [
+  "rm -rf /",            // recursive delete from filesystem root
+  "mkfs",                // format a filesystem
+  "dd if=",              // raw block device write
+  "shutdown",            // host shutdown
+  "reboot",              // host reboot
+  "> /dev/sda",          // write to a block device
+  "curl | sh",           // pipe remote script to shell
+  "curl|sh",             // same, without spaces
+  "wget | sh",           // pipe remote script to shell
+  "wget|sh",             // same, without spaces
+  "chmod -R 777 /",      // world-writable root
+  "chown -R 0:0 /",      // root-own everything
+  "git reset --hard HEAD && git clean -fdx", // destructive repo wipe (kept even though args are fixed by the UI; defense in depth)
+  "base64 -d",           // decode-then-run exfil pattern
+  "nc -e",               // netcat reverse shell
+  "bash -i >& /dev/tcp", // bash reverse shell
+  "python3 -c 'import socket,subprocess", // python reverse shell
+];
 
 async function git(cwd: string, args: string[]): Promise<string> {
   const r = await exec(GIT, args, { cwd, timeout: 60_000, maxBuffer: 4 * 1024 * 1024 });
