@@ -192,6 +192,9 @@ export async function runProjectTests(clonePath: string, command?: string): Prom
 // Predeclared command policy — deny-list of dangerous shell fragments (qm's "hard denials"
 // concept). Matched as substrings against the resolved command string. Keep it conservative:
 // a false positive blocks a test run; a false negative is a host compromise.
+// NOTE: pipe-to-shell patterns intentionally omit the space before `|` (both `curl x | sh`
+// and `curl x|sh` are common) — matching `| sh`/`|sh` with a leading pipe catches any
+// remote-script-piped-to-shell, not just curl/wget specifically.
 const COMMAND_POLICY_DENY: string[] = [
   "rm -rf /",            // recursive delete from filesystem root
   "mkfs",                // format a filesystem
@@ -199,10 +202,14 @@ const COMMAND_POLICY_DENY: string[] = [
   "shutdown",            // host shutdown
   "reboot",              // host reboot
   "> /dev/sda",          // write to a block device
-  "curl | sh",           // pipe remote script to shell
-  "curl|sh",             // same, without spaces
-  "wget | sh",           // pipe remote script to shell
-  "wget|sh",             // same, without spaces
+  "| sh",                // pipe output to sh (curl x | sh, echo x | sh, ...)
+  "|sh",                 // same, without space
+  "| bash",              // pipe output to bash
+  "|bash",               // same, without space
+  "| zsh",               // pipe output to zsh
+  "|zsh",                // same, without space
+  "| base64",            // pipe to base64 (decode-then-run / exfil patterns)
+  "|base64",             // same, without space
   "chmod -R 777 /",      // world-writable root
   "chown -R 0:0 /",      // root-own everything
   "git reset --hard HEAD && git clean -fdx", // destructive repo wipe (kept even though args are fixed by the UI; defense in depth)
