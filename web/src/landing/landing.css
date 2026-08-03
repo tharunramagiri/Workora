@@ -552,14 +552,23 @@
   .lp-footer__grid { grid-template-columns: 1fr 1fr; gap: var(--lp-space-8); }
 }
 @media (max-width: 620px) {
-  .lp-root { --lp-section-y: 56px; --lp-text-3xl: 38px; }
+  .lp-root { --lp-section-y: 48px; --lp-text-3xl: 38px; }
+  .lp-hero { padding-top: 72px; }
   .lp-hero__title { font-size: 42px; }
+  .lp-hero__actions { margin-top: var(--lp-space-8); }
+  .lp-hero-cases { margin-top: 28px; padding: 20px 0 24px; }
+  .lp-hero-cases__rail { padding-inline: 16px; }
+  .lp-hero-case-card { flex-basis: 92vw; margin-right: -64px; }
+  .lp-hero-case-card--3 { margin-right: 0; }
+  .lp-hero-case-card__copy { min-height: 0; grid-template-columns: 1fr; align-items: start; gap: 10px; padding: 16px; }
+  .lp-hero-case-card__copy strong { white-space: normal; }
+  .lp-hero-case-card .lp-product-app { height: 460px; }
   .lp-feature-hero { padding-block: 56px; }
   .lp-feature-hero__title { font-size: 42px; }
   .lp-feature-case__copy h3 { font-size: 34px; }
   .lp-feature-tabs { flex-wrap: wrap; padding-bottom: 0; }
   .lp-feature-tabs button { white-space: nowrap; }
-  .lp-product-app, .lp-product-shell.is-compact .lp-product-app { grid-template-columns: 1fr; height: 640px; }
+  .lp-product-app, .lp-product-shell.is-compact .lp-product-app { grid-template-columns: 1fr; height: 560px; }
   .lp-product-rail { display: none; }
   .lp-product-chat-head { min-height: 52px; padding: 0 14px; }
   .lp-product-chat-head > span, .lp-product-chat-head nav span, .lp-product-chat-head button { display: none; }

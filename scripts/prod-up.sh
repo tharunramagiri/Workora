@@ -12,6 +12,9 @@ echo "→ stopping old server listener on :$PORT (connected daemons left running
 lsof -ti "tcp:$PORT" -sTCP:LISTEN 2>/dev/null | xargs kill 2>/dev/null || true
 sleep 1
 
+echo "→ typechecking root + web before building site…"
+npm run typecheck >/dev/null
+
 echo "→ building site (web/dist + docs-site/dist are served by the server)…"
 npm run site:build >/dev/null
 
