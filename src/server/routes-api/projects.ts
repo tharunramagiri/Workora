@@ -7,7 +7,7 @@
 // POST /api/projects/:id/push — commit all changes on a feature branch and push (agent ships a PR)
 // DELETE /api/projects/:id    — remove (daemon leaves the clone; DB row removed)
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { db, schema } from "../../db/index.js";
 import { requestDaemonByMachine } from "../daemonHub.js";
 import { sendErr, sendJson } from "../util.js";
@@ -26,7 +26,7 @@ export async function handleProjects(ctx: ServerCtx): Promise<boolean> {
   const { req, res, method, url, p, serverId, userId } = ctx;
 
   if (p === "/api/projects" && method === "GET") {
-    const rows = await db.select().from(schema.projects).where(eq(schema.projects.serverId, serverId)).orderBy(desc(schema.projects.createdAt));
+    const rows = await db.select().from(schema.projects).where(and(eq(schema.projects.serverId, serverId), ne(schema.projects.status, "removed"))).orderBy(desc(schema.projects.createdAt));
     return (sendJson(res, 200, rows.map((pr) => serialize(pr))), true);
   }
 
@@ -40,7 +40,7 @@ export async function handleProjects(ctx: ServerCtx): Promise<boolean> {
     if (!machine) return (sendErr(res, 404, "machine not found"), true);
 
     const name = String(b.name ?? "").trim() || repoNameFromUrl(repoUrl);
-    const dup = (await db.select().from(schema.projects).where(and(eq(schema.projects.serverId, serverId), eq(schema.projects.repoUrl, repoUrl))))[0];
+    const dup = (await db.select().from(schema.projects).where(and(eq(schema.projects.serverId, serverId), eq(schema.projects.repoUrl, repoUrl), ne(schema.projects.status, "removed"))))[0];
     if (dup) return (sendErr(res, 409, "this repo is already imported", { projectId: dup.id }), true);
 
     // Ask the daemon to clone (blobless). If no daemon is online, record the row as "error" — the

@@ -3,7 +3,7 @@
 // mocked. Reachable at /s/:server/onboarding; the empty-state Projects/Computers panels link here so
 // a fresh workspace has one guided path from zero to a completed repo task instead of five separate
 // screens the user has to discover on their own. See docs/product/homepage-onboarding-spec-2026-08-03.md.
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, CheckCircle2, GitBranch, ListChecks, MonitorSmartphone, Users } from "lucide-react";
 import { useStore } from "../store.tsx";
@@ -25,7 +25,6 @@ type Project = {
   channelId: string | null; status: string; lastError: string | null; lastCommit: string | null;
 };
 
-type TaskTemplate = { key: string; label: string; agentName: string; prompt: string };
 const TEMPLATES: { key: string; label: string; hint: string; agentName: string; prompt: (repo: string) => string }[] = [
   {
     key: "solo",
@@ -86,6 +85,7 @@ export function Onboarding() {
   const liveMachine = genRes ? machines.find((m) => m.id === genRes.id) : undefined;
   const machineOnline = onlineMachines.length > 0 || liveMachine?.status === "online";
 
+  const genKeyRef = useRef(false); // guards against React 18 StrictMode double-invoking the auto-gen effect, which would otherwise create two machine rows for one onboarding run
   const genKey = useCallback(async () => {
     if (!serverId) return;
     setGenBusy(true); setGenErr("");
@@ -98,9 +98,13 @@ export function Onboarding() {
   }, [api, reload, serverId]);
 
   // Auto-generate a connect key once when this step is first shown and no machine is online yet.
+  // The ref (not just state) makes this idempotent under StrictMode's double effect invocation.
   useEffect(() => {
-    if (step === "machine" && !genRes && !genBusy && onlineMachines.length === 0 && serverId) void genKey();
-  }, [step, genRes, genBusy, onlineMachines.length, serverId, genKey]);
+    if (step === "machine" && !genRes && !genKeyRef.current && onlineMachines.length === 0 && serverId) {
+      genKeyRef.current = true;
+      void genKey();
+    }
+  }, [step, genRes, onlineMachines.length, serverId, genKey]);
 
   const cmd = genRes ? daemonConnectCommand(window.location.origin, genRes.key) : "";
   const copy = () => { navigator.clipboard?.writeText(cmd); setCopied(true); setTimeout(() => setCopied(false), 1500); };
@@ -113,7 +117,14 @@ export function Onboarding() {
     setImportBusy(true);
     try {
       const r = await api("POST", "/api/projects", { repoUrl: repoUrl.trim(), machineId });
-      if (r?.status === "error") { setImportErr(String(r?.error ?? "Import failed.")); return; }
+      // Real API failure modes for this endpoint: r.error present (400 bad URL, 404 machine, 409
+      // dup-repo w/ projectId, or the 200-with-status:"error" clone-failure shape). Any of these
+      // must stop the wizard here instead of advancing with a project object missing an id/channel.
+      if (r?.error || r?.status === "error" || !r?.id) {
+        setImportErr(String(r?.error ?? "Import failed."));
+        return;
+      }
+      if (r.status !== "ready") { setImportErr(`Clone did not finish (status: ${r.status}). Try again or check the machine.`); return; }
       setProject({ id: r.id, name: repoUrl.split("/").pop()?.replace(/\.git$/, "") || "repo", repoUrl: repoUrl.trim(), clonePath: r.clonePath, defaultBranch: r.defaultBranch, channelId: r.channelId ?? null, status: r.status, lastError: null, lastCommit: null });
       setStep("team");
     } catch (e: any) { setImportErr(String(e?.message ?? e)); }
@@ -154,7 +165,6 @@ export function Onboarding() {
     finally { setTaskBusy(false); }
   };
 
-  const activeIndex = STEPS.findIndex((s) => s.id === step);
   const doneUpTo = useMemo(() => {
     const order: StepId[] = ["machine", "repo", "team", "task", "watch", "review"];
     const idx = order.indexOf(step);

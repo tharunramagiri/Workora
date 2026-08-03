@@ -59,3 +59,15 @@
 
 .ob-acts { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 .ob-acts .ok { display: inline-flex; align-items: center; gap: 6px; }
+
+@media (max-width: 560px) {
+  .ob-root { padding: 24px 14px 56px; }
+  .ob-card { padding: 20px; }
+  .ob-step__label { display: none; }
+  .ob-step__line { margin: 0 4px; }
+  .ob-codebox { flex-direction: column; align-items: stretch; }
+  .ob-codebox code { white-space: pre-wrap; word-break: break-all; }
+  .ob-acts { flex-direction: column-reverse; }
+  .ob-acts button { width: 100%; justify-content: center; }
+}
+
