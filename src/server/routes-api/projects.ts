@@ -10,6 +10,7 @@ import { randomUUID } from "node:crypto";
 import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { db, schema } from "../../db/index.js";
 import { requestDaemonByMachine } from "../daemonHub.js";
+import { requireCap } from "../capabilities.js";
 import { sendErr, sendJson } from "../util.js";
 import type { ServerCtx } from "./ctx.js";
 
@@ -31,6 +32,9 @@ export async function handleProjects(ctx: ServerCtx): Promise<boolean> {
   }
 
   if (p === "/api/projects" && method === "POST") {
+    // Import triggers a real git clone on the connected machine — gate it like every other
+    // machine-executing action (agents.ts/servers.ts convention) so a bare member can't run one.
+    if (!await requireCap(serverId, userId, "manageAgents")) return (sendErr(res, 403, "need manageAgents capability"), true);
     const b = await readJsonSafe(req);
     const repoUrl = String(b.repoUrl ?? "").trim();
     if (!GIT_URL_RE.test(repoUrl)) return (sendErr(res, 400, "a valid git URL is required (https:// or git@)"), true);
@@ -77,6 +81,11 @@ export async function handleProjects(ctx: ServerCtx): Promise<boolean> {
 
     if (method === "GET") return (sendJson(res, 200, serialize(row)), true);
 
+    // Every mutating/executing sub-route below reaches the daemon on a real machine (clone,
+    // delete, checkout, arbitrary test command, push, sync) — same manageAgents gate as import.
+    // GET (read-only status) stays open to any member, matching agents.ts's read/write split.
+    if (!await requireCap(serverId, userId, "manageAgents")) return (sendErr(res, 403, "need manageAgents capability"), true);
+
     if (method === "DELETE") {
       await db.update(schema.projects).set({ status: "removed" }).where(eq(schema.projects.id, id));
       return (sendJson(res, 200, { ok: true }), true);
@@ -112,7 +121,12 @@ export async function handleProjects(ctx: ServerCtx): Promise<boolean> {
       }
       if (op === "test") {
         const b = await readJsonSafe(req);
-        const cmd = typeof b.command === "string" && b.command.trim() ? b.command.trim() : undefined;
+        // A client-controlled test command is opaque shell text on the daemon side (gitOps.ts
+        // wraps it in `sh -c`) — restrict override length/shape defensively even though this
+        // route is already manageAgents-gated above; the daemon still enforces its own timeout.
+        const rawCmd = typeof b.command === "string" ? b.command.trim() : "";
+        if (rawCmd.length > 2000) return (sendErr(res, 400, "command too long"), true);
+        const cmd = rawCmd || undefined;
         const rpc = await requestDaemonByMachine(row.machineId, { type: "git:test", clonePath: row.clonePath, command: cmd }, 190_000);
         if (rpc?.ok !== true) return (sendJson(res, 200, { ok: false, error: rpc?.error ?? "test run failed", output: rpc?.output ?? "" }), true);
         return (sendJson(res, 200, { ok: true, output: rpc.output ?? "", code: rpc.code, command: rpc.command }), true);
