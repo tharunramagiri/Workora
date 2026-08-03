@@ -164,6 +164,27 @@ curl http://localhost:7890/health
 
 ---
 
+## What's shipped (feature checklist)
+
+- **Repo-first agent work** — import a repo, bind agents, agents create branches, run tests, push, and report in review channels.
+- **Onboarding wizard** — machine → repo → team → first task in one guided flow.
+- **Agent soul** — per-agent `personality.md` (voice, values, boundaries) seeded on first start, editable in the UI.
+- **Agent memory** — per-agent `MEMORY.md` + `notes/`, plus a shared team **knowledge base** (`/api/knowledge`) that agents read and write.
+- **Skill marketplace** — publish/assign skills; curated process packs (`npm run seed:skills`: spec, tickets, implement, tdd, review, handoff, triage).
+- **Background cron jobs** — recurring reminders (`POST /api/reminders`) that wake an agent on schedule; the scheduler reschedules them automatically.
+- **Inbound bridge** — `POST /api/inbound` (bearer-keyed shared secret) pushes external events into a channel with optional agent mention. This is the landing point for a WhatsApp/Telegram connector or product webhooks.
+- **PWA** — installable (add-to-home-screen), mobile-usable, network-first offline shell.
+- **Security** — capability-gated project routes, daemon command-policy deny-list, rate-limited auth, hashed secrets, non-root Docker, human-gated agent actions.
+
+## What needs your accounts (handoff — I can't create these)
+
+Two items are ready at the integration point but need credentials only you can obtain:
+
+1. **WhatsApp bridge (live)** — the inbound endpoint is live. To connect an actual WhatsApp number, run an [owpenbot](https://github.com/different-ai/owpenbot)-style connector that forwards WhatsApp messages to `POST /api/inbound` with `INBOUND_WEBHOOK_KEY`. Requires your WhatsApp number / WhatsApp Business API token.
+2. **Mobile app store publication** — the web app is now PWA-installable, but publishing native iOS/Android apps requires Apple Developer ($99/yr) and Google Play ($25 one-time) accounts. If you want true app-store presence, register those accounts and the Expo wrapper (the `happy` client pattern) can be built on top.
+
+---
+
 ## License
 
 Apache 2.0 — fork it, rebrand it, sell it. Just keep the license notice.
