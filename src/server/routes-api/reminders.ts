@@ -43,9 +43,9 @@ export async function handleReminders(ctx: ServerCtx): Promise<boolean> {
     return (sendJson(res, 200, { ok: true, id: r!.id, remindAt: r!.remindAt, recurrence }), true);
   }
 
-  if (p === "/api/reminders" && method === "DELETE") {
-    const id = String(url.pathname.split("/").pop() ?? "").trim();
-    if (!id) return (sendErr(res, 400, "id required"), true);
+  const del = /^\/api\/reminders\/([^/]+)$/.exec(p);
+  if (del && method === "DELETE") {
+    const id = del[1]!;
     const r = (await db.select().from(schema.reminders).where(and(eq(schema.reminders.id, id), eq(schema.reminders.serverId, serverId))))[0];
     if (!r) return (sendErr(res, 404, "reminder not found"), true);
     await db.update(schema.reminders).set({ status: "cancelled" }).where(eq(schema.reminders.id, id));
