@@ -1,0 +1,19 @@
+{
+  "name": "@workora/bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "WhatsApp + Telegram connector that forwards messages into a Workora workspace via /api/inbound.",
+  "scripts": {
+    "start": "node index.mjs",
+    "dev": "node --watch index.mjs"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.26.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

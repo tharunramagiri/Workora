@@ -178,10 +178,26 @@ curl http://localhost:7890/health
 
 ## What needs your accounts (handoff — I can't create these)
 
-Two items are ready at the integration point but need credentials only you can obtain:
+Two items are **built and ready** — they need credentials only you can obtain:
 
-1. **WhatsApp bridge (live)** — the inbound endpoint is live. To connect an actual WhatsApp number, run an [owpenbot](https://github.com/different-ai/owpenbot)-style connector that forwards WhatsApp messages to `POST /api/inbound` with `INBOUND_WEBHOOK_KEY`. Requires your WhatsApp number / WhatsApp Business API token.
-2. **Mobile app store publication** — the web app is now PWA-installable, but publishing native iOS/Android apps requires Apple Developer ($99/yr) and Google Play ($25 one-time) accounts. If you want true app-store presence, register those accounts and the Expo wrapper (the `happy` client pattern) can be built on top.
+1. **WhatsApp bridge (2 minutes to go live)** — the connector is built (`bridges/`):
+   ```bash
+   cd bridges && npm install
+   cp .env.example .env   # set WORKORA_SERVER_ID + WORKORA_INBOUND_KEY
+   npm start              # scan the QR with your phone → messages flow into Workora
+   ```
+   Requires your WhatsApp number (QR login, no API token). The server-side
+   `/api/inbound` endpoint it talks to is already live and verified.
+
+2. **Mobile app (ready to publish once you register accounts)** — the app is built
+   (`mobile/`, Expo wrapper around the web app, the `happy` pattern):
+   ```bash
+   cd mobile && npm install && npx expo start
+   ```
+   Publishing to the App Store / Play Store requires **your** developer accounts:
+   - Apple Developer — $99/year (developer.apple.com)
+   - Google Play — $25 one-time (play.google.com/console)
+   Then `eas build --platform ios|android && eas submit`. See `mobile/README.md`.
 
 ---
 

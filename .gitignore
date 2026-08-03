@@ -22,3 +22,8 @@ _vendor/
 
 # screenshots / browser-verification captures — local only
 .shots/
+
+# Bridge + mobile deps
+bridges/node_modules/
+bridges/.wa-session/
+mobile/node_modules/
