@@ -21,6 +21,14 @@ import "./i18n";
 import "./styles.css";
 import "./iconMotion.css";
 
+// Register the PWA service worker (installable + offline-resilient static shell).
+// Non-blocking and never fatal — the app works identically without it.
+if ("serviceWorker" in navigator && window.location.protocol.startsWith("http")) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => { /* silent: PWA is progressive enhancement */ });
+  });
+}
+
 // Public home ("/"). The marketing Landing is for anonymous visitors only; a user who has — or is
 // still resolving — a session must never see it. While the bootstrap runs we show the workspace
 // skeleton (NOT the marketing page, and NOT a blank screen), then send an authed user to their

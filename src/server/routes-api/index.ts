@@ -30,6 +30,7 @@ import { handleTasks } from "./tasks.js";
 import { handleProjects } from "./projects.js";
 import { handleKnowledge } from "./knowledge.js";
 import { handleSkills } from "./skills.js";
+import { handleInbound } from "./inbound.js";
 
 export async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL, method: string): Promise<boolean> {
   const p = url.pathname;
@@ -37,6 +38,7 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, url: 
   const base: BaseCtx = { req, res, url, method, p };
 
   // ---- gate 0: public / self-authenticating ----
+  if (await handleInbound(req, res, method)) return true; // bearer-keyed external bridge (no JWT; external services can't hold one)
   if (await handlePublicAuth(base)) return true;
   if (await handlePublicAttachmentGet(base)) return true;
 
