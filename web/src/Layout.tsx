@@ -1,6 +1,6 @@
 import { useEffect, useState, type Dispatch, type MouseEvent as RMouseEvent, type SetStateAction } from "react";
 import { Outlet, useLocation, useParams, useNavigate } from "react-router-dom";
-import { IconSearch, IconChat, IconTasks, IconUsers, IconMonitor, IconSettings, IconInbox, IconProject, IconWrench } from "./icons.tsx";
+import { IconSearch, IconChat, IconTasks, IconUsers, IconMonitor, IconSettings, IconInbox, IconProject, IconWrench, IconKnowledge, IconReminder } from "./icons.tsx";
 import { useStore } from "./store.tsx";
 import { ServerSwitcher } from "./ServerSwitcher.tsx";
 import { QuickSwitcher } from "./QuickSwitcher.tsx";
@@ -13,6 +13,8 @@ const SECTIONS = [
   { key: "inbox", Icon: IconInbox, labelKey: "nav.inbox" },
   { key: "channel", Icon: IconChat, labelKey: "nav.channel" },
   { key: "tasks", Icon: IconTasks, labelKey: "nav.tasks" },
+  { key: "knowledge", Icon: IconKnowledge, labelKey: "nav.knowledge" },
+  { key: "reminders", Icon: IconReminder, labelKey: "nav.reminders" },
   { key: "agent", Icon: IconUsers, labelKey: "nav.members" },
   { key: "skill", Icon: IconWrench, labelKey: "nav.skills" },
   { key: "project", Icon: IconProject, labelKey: "nav.projects" },

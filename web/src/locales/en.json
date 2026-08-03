@@ -9,7 +9,9 @@
     "settings": "Settings",
     "alerts": "Alerts",
     "projects": "Projects",
-    "skills": "Skills"
+    "skills": "Skills",
+    "knowledge": "Knowledge",
+    "reminders": "Reminders"
   },
   "alerts": {
     "title": "Notifications",
@@ -702,5 +704,30 @@
     "unassign": "Unassign",
     "noAgents": "No agents to assign to.",
     "delete": "Delete"
+  },
+  "knowledge": {
+    "title": "Title",
+    "content": "Content",
+    "added": "Added to the knowledge base.",
+    "empty": "No knowledge yet",
+    "subtitle": "Facts your agents and team have saved. Add durable knowledge so agents don’t relearn it.",
+    "addTitle": "Add knowledge",
+    "add": "Add"
+  },
+  "reminders": {
+    "contentRequired": "Content is required",
+    "recurringInvalid": "Recurring interval must be a positive number of seconds",
+    "added": "Reminder scheduled",
+    "empty": "No active reminders",
+    "emptySub": "Schedule recurring reminders that wake an agent. Use @AgentName in the message.",
+    "subtitle": "Recurring jobs that wake agents on schedule",
+    "every": "every",
+    "next": "Next",
+    "fired": "Fired",
+    "addTitle": "New reminder",
+    "channel": "Channel (default all)",
+    "everySec": "Repeat every (sec)",
+    "firstIn": "First in (sec)",
+    "add": "Schedule"
   }
 }

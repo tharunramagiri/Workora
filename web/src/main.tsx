@@ -11,6 +11,8 @@ import { Showcase } from "./views/Showcase.tsx";
 import { Members } from "./views/Members.tsx";
 import { Tasks, Computers, Search, Settings, Inbox, Saved } from "./views/misc.tsx";
 import { Projects } from "./views/Projects.tsx";
+import { Knowledge } from "./views/Knowledge.tsx";
+import { Reminders } from "./views/Reminders.tsx";
 import { Onboarding } from "./views/Onboarding.tsx";
 import { Skills } from "./views/Skills.tsx";
 import { AuthPage, JoinPage } from "./views/Auth.tsx";
@@ -95,6 +97,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="human/:userId" element={<Members />} />
             <Route path="tasks" element={<Tasks />} />
             <Route path="tasks/:channelId" element={<Tasks />} />
+            <Route path="knowledge" element={<Knowledge />} />
+            <Route path="reminders" element={<Reminders />} />
             <Route path="computer" element={<Computers />} />
             <Route path="computer/:machineId" element={<Computers />} />
             <Route path="project" element={<Projects />} />
