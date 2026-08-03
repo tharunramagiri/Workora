@@ -55,7 +55,7 @@ const LANDING_COPY = {
     nav: { features: "How it works", capabilities: "What ships", engines: "Engines", selfHosted: "Self-hosted", docs: "Docs", github: "GitHub", enter: "Start with a repo" },
     hero: {
       eyebrow: "Self-hosted autonomous coding teams",
-      title: "Paste a repo. Get an\nAI team that ships work.",
+      title: "Paste a repo. Get an AI team\nthat ships work.",
       sub: "Workora gives you persistent AI teammates that work inside a shared workspace, clone real repos, create branches, run tests, and report back in channels and threads. Everything runs on machines you control.",
       explore: "See how Workora works",
       github: "View on GitHub",

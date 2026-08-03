@@ -216,7 +216,7 @@ export function Projects() {
 
               {branches && branches.length > 0 && (
                 <div className="card" style={{ marginBottom: 14 }}>
-                  <h3>{t("projects.branch")}s</h3>
+                  <h3>{t("projects.branch")}es</h3>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
                     {branches.map((b) => (
                       <div key={b} className="project-branch" style={{ display: "flex", alignItems: "center", gap: 8 }}>

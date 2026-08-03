@@ -373,7 +373,7 @@
 .lp-features .lp-container { max-width: min(1720px, calc(100vw - 96px)); }
 .lp-feature-hero { padding-block: 92px 84px; border-bottom: 1px solid var(--lp-border-soft); }
 .lp-feature-hero__grid { display: grid; grid-template-columns: minmax(0, 0.92fr) minmax(360px, 0.72fr); gap: var(--lp-space-16); align-items: end; }
-.lp-feature-hero__title { margin-top: var(--lp-space-6); font-family: var(--lp-font-display); font-size: 76px; line-height: 1.02; letter-spacing: var(--lp-tracking-display); max-width: 12ch; }
+.lp-feature-hero__title { margin-top: var(--lp-space-6); font-family: var(--lp-font-display); font-weight: 400; font-size: 76px; line-height: 1.02; letter-spacing: var(--lp-tracking-display); max-width: 12ch; }
 .lp-feature-hero__lead { margin-top: var(--lp-space-8); font-size: var(--lp-text-lg); color: var(--lp-fg-2); max-width: 54ch; }
 .lp-feature-proof { align-self: stretch; min-height: 300px; display: grid; align-content: center; gap: var(--lp-space-5); padding: var(--lp-space-8); border: 1px solid var(--lp-border); border-radius: var(--lp-radius-lg); background: var(--lp-surface); box-shadow: var(--lp-elev-soft); }
 .lp-feature-proof > svg { justify-self: center; color: var(--lp-muted-soft); transform: rotate(90deg); }
@@ -390,7 +390,7 @@
 .lp-feature-case { margin-top: var(--lp-space-12); display: grid; grid-template-columns: minmax(340px, 0.52fr) minmax(880px, 1.48fr); gap: var(--lp-space-12); align-items: center; }
 .lp-feature-case__copy { min-width: 0; }
 .lp-feature-kicker { display: inline-flex; align-items: center; height: 28px; padding-inline: 10px; border: 1px solid var(--lp-border); border-radius: var(--lp-radius-pill); background: var(--lp-surface); color: var(--lp-muted); font-size: var(--lp-text-xs); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-.lp-feature-case__copy h3 { margin-top: var(--lp-space-5); font-family: var(--lp-font-display); font-size: 44px; line-height: 1.08; letter-spacing: var(--lp-tracking-display); }
+.lp-feature-case__copy h3 { margin-top: var(--lp-space-5); font-family: var(--lp-font-display); font-weight: 400; font-size: 44px; line-height: 1.08; letter-spacing: var(--lp-tracking-display); }
 .lp-feature-case__copy p { margin-top: var(--lp-space-5); color: var(--lp-fg-2); font-size: var(--lp-text-base); max-width: 42ch; }
 .lp-feature-case__copy ul { list-style: none; padding: 0; margin: var(--lp-space-8) 0 0; display: grid; gap: var(--lp-space-3); }
 .lp-feature-case__copy li { display: flex; align-items: flex-start; gap: var(--lp-space-3); color: var(--lp-fg-2); font-size: var(--lp-text-sm); line-height: 1.55; }
@@ -498,7 +498,7 @@
 
 /* —— Closing CTA —— */
 .lp-cta { text-align: center; }
-.lp-cta__title { font-family: var(--lp-font-display); font-size: var(--lp-text-3xl); line-height: 1.05; letter-spacing: var(--lp-tracking-display); }
+.lp-cta__title { font-family: var(--lp-font-display); font-weight: 400; font-size: var(--lp-text-3xl); line-height: 1.05; letter-spacing: var(--lp-tracking-display); }
 .lp-cta__actions { margin-top: var(--lp-space-12); display: flex; gap: var(--lp-space-4); justify-content: center; flex-wrap: wrap; }
 
 /* —— Footer —— */
