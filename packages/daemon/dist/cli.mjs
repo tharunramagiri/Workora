@@ -4573,6 +4573,33 @@ ${ROLE_END}
 - First startup
 `;
 }
+function seedPersonality(displayName, role) {
+  return `# ${displayName} \u2014 soul
+
+## Who I am
+${role?.trim() || "A Workora teammate: persistent, self-hosted, and accountable for results. I collaborate with humans and other agents in channels, threads, and DMs."}
+
+## Voice
+- Direct and concise. Report outcomes, not intentions.
+- Ask for clarification when a task is ambiguous instead of guessing.
+- Explain the reasoning behind non-obvious decisions.
+
+## Values
+- Ship real, verifiable work over plausible-sounding answers.
+- Keep the human in control: prepare actions, never silently execute privileged ones.
+- Preserve durable knowledge for the team (write to the knowledge base + MEMORY.md).
+
+## Boundaries
+- I never commit secrets, credentials, or personal data.
+- I never overwrite project instruction files (AGENTS.md etc.) with Workora identity.
+- I ask before destructive or irreversible operations.
+
+## Work style
+- Read memory + knowledge base before starting a task.
+- Keep MEMORY.md current as a self-sufficient index; put details in notes/.
+- Before stopping, persist anything durable I learned.
+`;
+}
 function roleBody(description) {
   return (description ?? "").trim() || "Undefined";
 }
@@ -7915,6 +7942,14 @@ var AgentManager = class {
       personality = void 0;
     }
     this.assertStartActive(agentId, attempt);
+    if (!personality) {
+      try {
+        await atomicWriteManagedFile(stateDir, "personality.md", seedPersonality(config.displayName || config.name, config.description));
+        personality = void 0;
+      } catch {
+      }
+    }
+    this.assertStartActive(agentId, attempt);
     const effectiveDescription = personality ?? config.description;
     const systemPrompt = buildSystemPrompt({
       name: config.name,
@@ -8907,12 +8942,58 @@ async function runProjectTests(clonePath, command) {
     const hasComposer = await fs4.stat(path19.join(clonePath, "composer.json")).then(() => true).catch(() => false);
     const hasPackage = await fs4.stat(path19.join(clonePath, "package.json")).then(() => true).catch(() => false);
     const cmd = command || (hasComposer ? "sh -c 'composer install --no-interaction --prefer-dist 2>/dev/null; php artisan test --stop-on-failure 2>&1 || true'" : hasPackage ? "npm test 2>&1 || true" : "true");
+    const denied = COMMAND_POLICY_DENY.some((pat) => cmd.includes(pat));
+    if (denied) return { ok: false, error: "command denied by policy", code: "git_test_denied" };
     const r = await exec("/bin/sh", ["-c", cmd], { cwd: clonePath, timeout: 18e4, maxBuffer: 8 * 1024 * 1024 }).catch((e) => e);
     return { ok: true, output: String(r?.stdout ?? "").slice(-8e3), code: r?.code ?? 0, command: cmd };
   } catch (e) {
     return { ok: false, error: errMsg(e), code: "git_test_failed" };
   }
 }
+var COMMAND_POLICY_DENY = [
+  "rm -rf /",
+  // recursive delete from filesystem root
+  "mkfs",
+  // format a filesystem
+  "dd if=",
+  // raw block device write
+  "shutdown",
+  // host shutdown
+  "reboot",
+  // host reboot
+  "> /dev/sda",
+  // write to a block device
+  "| sh",
+  // pipe output to sh (curl x | sh, echo x | sh, ...)
+  "|sh",
+  // same, without space
+  "| bash",
+  // pipe output to bash
+  "|bash",
+  // same, without space
+  "| zsh",
+  // pipe output to zsh
+  "|zsh",
+  // same, without space
+  "| base64",
+  // pipe to base64 (decode-then-run / exfil patterns)
+  "|base64",
+  // same, without space
+  "chmod -R 777 /",
+  // world-writable root
+  "chown -R 0:0 /",
+  // root-own everything
+  "git reset --hard HEAD && git clean -fdx",
+  // destructive repo wipe (kept even though args are fixed by the UI; defense in depth)
+  "base64 -d",
+  // decode-then-run exfil pattern
+  "nc -e",
+  // netcat reverse shell
+  "bash -i >& /dev/tcp",
+  // bash reverse shell
+  "python3 -c 'import socket,subprocess"
+  // python reverse shell
+];
 async function git(cwd, args2) {
   const r = await exec(GIT, args2, { cwd, timeout: 6e4, maxBuffer: 4 * 1024 * 1024 });
   return r.stdout;
