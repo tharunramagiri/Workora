@@ -221,7 +221,7 @@ export function Landing() {
   const { me, slug } = useStore();
   const navigate = useNavigate();
   const [lang] = useState<Lang>(() => detectLandingLang());
-  const enterWorkspace = () => navigate(me ? `/s/${slug}/channel` : "/login");
+  const enterWorkspace = () => navigate(me ? `/s/${slug}/onboarding` : "/login");
   const copy = LANDING_COPY[lang];
   const origin = typeof window !== "undefined" && window.location?.origin ? window.location.origin : undefined;
   const docsHref = resolveDocsHref(origin);

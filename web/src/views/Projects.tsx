@@ -189,8 +189,10 @@ export function Projects() {
             <div className="head"><h1>{t("nav.projects")}</h1></div>
             <div className="scroll">
               <PaneEmpty icon={<IconProject size={30} />} title={t("projects.empty")} sub={t("projects.subtitle")}
-                action={onlineMachines.length ? <button className="pe-cta" onClick={openImport}><Plus size={15} /> {t("projects.importRepo")}</button>
-                  : <span className="muted">{t("projects.noMachines")}</span>} />
+                action={<div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                  <button className="pe-cta" onClick={() => nav(`/s/${slug}/onboarding`)}>Start with a repo</button>
+                  {onlineMachines.length > 0 && <button className="pe-cta" onClick={openImport}><Plus size={15} /> {t("projects.importRepo")}</button>}
+                </div>} />
             </div>
           </>
         ) : (

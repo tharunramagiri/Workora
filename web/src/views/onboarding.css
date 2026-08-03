@@ -1,0 +1,61 @@
+/* onboarding.css — first-run wizard (machine -> repo -> team -> task -> watch -> review).
+ * Scoped under .ob-root, using the app's existing --bg/--fg/--accent tokens (defined in styles.css)
+ * so it matches the authenticated app shell rather than the public landing skin. */
+.ob-root {
+  min-height: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 48px 20px 80px;
+  background: var(--bg, #f5f5f5);
+}
+.ob-shell { width: 100%; max-width: 640px; }
+
+.ob-steps { display: flex; align-items: center; margin-bottom: 32px; }
+.ob-step { display: flex; align-items: center; flex: 1; }
+.ob-step:last-child { flex: 0; }
+.ob-step__label { margin-left: 8px; font-size: 12px; color: var(--muted, #777); white-space: nowrap; }
+.ob-step__line { flex: 1; height: 1px; background: var(--border, #e5e5e5); margin: 0 10px; }
+.ob-dot {
+  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 11px; font-weight: 600; color: var(--muted, #999);
+  background: var(--surface, #fff); border: 1px solid var(--border, #e5e5e5); flex: none;
+}
+.ob-dot.is-active { border-color: var(--accent, #292524); color: var(--accent, #292524); }
+.ob-dot.is-done { background: var(--accent, #292524); border-color: var(--accent, #292524); color: #fff; }
+
+.ob-card {
+  background: var(--surface, #fff); border: 1px solid var(--border, #e5e5e5);
+  border-radius: 16px; padding: 32px; display: flex; flex-direction: column; gap: 4px;
+}
+.ob-card__icon { color: var(--accent, #292524); margin-bottom: 8px; }
+.ob-card h2 { margin: 0 0 4px; font-size: 22px; }
+.ob-card__lead { color: var(--muted, #666); margin: 0 0 16px; font-size: 14px; line-height: 1.5; }
+
+.ob-label { font-size: 12px; font-weight: 600; color: var(--muted, #666); margin-bottom: 6px; }
+.ob-textarea { resize: vertical; font: inherit; }
+
+.ob-codebox {
+  display: flex; align-items: center; gap: 8px; background: var(--bg-2, #f0efed);
+  border: 1px solid var(--border, #e5e5e5); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;
+  overflow-x: auto;
+}
+.ob-codebox code { font-family: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace; font-size: 12.5px; white-space: nowrap; }
+
+.ob-wait { display: flex; align-items: center; gap: 8px; color: var(--muted, #666); font-size: 13px; margin: 8px 0; }
+.ob-pulse { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; animation: ob-pulse 1.6s infinite; }
+@keyframes ob-pulse { 0% { box-shadow: 0 0 0 0 rgba(22,163,74,.5); } 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+.ob-ok { display: flex; align-items: center; gap: 8px; color: #16a34a; font-size: 14px; margin-bottom: 12px; }
+.ob-err { color: #dc2626; font-size: 13px; margin: 6px 0; }
+
+.ob-templates { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 16px; }
+.ob-template {
+  text-align: left; border: 1px solid var(--border, #e5e5e5); border-radius: 10px; padding: 12px 14px;
+  background: var(--surface, #fff); cursor: pointer; display: flex; flex-direction: column; gap: 2px;
+}
+.ob-template b { font-size: 14px; }
+.ob-template span { font-size: 12.5px; color: var(--muted, #777); }
+.ob-template.is-active { border-color: var(--accent, #292524); box-shadow: 0 0 0 1px var(--accent, #292524); }
+
+.ob-acts { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.ob-acts .ok { display: inline-flex; align-items: center; gap: 6px; }
