@@ -49,6 +49,7 @@ export function Projects() {
   const [diffText, setDiffText] = useState("");
   const [diffBranchName, setDiffBranchName] = useState("");
   const [loadingDiff, setLoadingDiff] = useState(false);
+  const [diffOpen, setDiffOpen] = useState(false);
 
   const inactiveAgents = agents.filter((a) => a.status === "inactive" || a.status === "sleeping");
 
@@ -155,12 +156,12 @@ export function Projects() {
   // Show what the agent actually changed (genoffice borrow): stat summary + full patch toggle.
   const loadDiff = async (patch: boolean) => {
     if (!cur) return;
-    setLoadingDiff(true);
+    setLoadingDiff(true); setDiffOpen(true);
     try {
       const r = await api("POST", `/api/projects/${cur.id}/diff`, { patch });
       if (r?.ok) { setDiffText(String(r.diff ?? "")); setDiffBranchName(String(r.branch ?? cur.name)); }
-      else setDiffText(r?.error ? `error: ${r.error}` : "no diff");
-    } catch (e: any) { setDiffText(String(e?.message ?? e)); }
+      else { setDiffText(r?.error ? `error: ${r.error}` : "no diff"); setDiffBranchName(cur.name); }
+    } catch (e: any) { setDiffText(String(e?.message ?? e)); setDiffBranchName(cur.name); }
     finally { setLoadingDiff(false); }
   };
 
@@ -228,14 +229,14 @@ export function Projects() {
                 {cur.lastCommit && <div className="kv"><b>{t("projects.lastCommit")}</b> <code>{cur.lastCommit}</code></div>}
                 {cur.lastError && <div className="form-err">{t("projects.error")}: {cur.lastError}</div>}
                 {testOutput && <pre className="project-test-out" style={{ marginTop: 10, fontSize: 12, maxHeight: 200, overflow: "auto", background: "var(--surface-strong)", padding: 10, borderRadius: 8 }}>{testOutput}</pre>}
-                {diffText !== "" && (
+                {diffOpen && (
                   <div style={{ marginTop: 10 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                       <b style={{ fontSize: 13 }}>{t("projects.diff")} — {diffBranchName}</b>
-                      {diffText !== "no diff" && !diffText.startsWith("error") && <button className="action-btn" onClick={() => void loadDiff(diffText.includes("@@"))}>Toggle full patch</button>}
-                      <button className="action-btn" onClick={() => setDiffText("")}>Close</button>
+                      {!loadingDiff && diffText !== "no diff" && !diffText.startsWith("error") && <button className="action-btn" onClick={() => void loadDiff(diffText.includes("@@"))}>Toggle full patch</button>}
+                      <button className="action-btn" onClick={() => setDiffOpen(false)}>Close</button>
                     </div>
-                    <pre className="project-diff" style={{ fontSize: 12, lineHeight: 1.5, maxHeight: 360, overflow: "auto", background: "var(--surface-strong)", padding: 10, borderRadius: 8, whiteSpace: "pre", fontFamily: "var(--mono)" }}>{diffText || "No changes on this branch."}</pre>
+                    {loadingDiff ? <div className="muted" style={{ fontSize: 13 }}>Loading diff…</div> : <pre className="project-diff" style={{ fontSize: 12, lineHeight: 1.5, maxHeight: 360, overflow: "auto", background: "var(--surface-strong)", padding: 10, borderRadius: 8, whiteSpace: "pre", fontFamily: "var(--mono)" }}>{diffText || "No changes on this branch."}</pre>}
                   </div>
                 )}
               </div>
