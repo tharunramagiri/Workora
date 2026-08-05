@@ -128,8 +128,14 @@ export async function diffBranch(clonePath: string, base?: string, opts?: { patc
     const range = mergeBase ? `${mergeBase}..${branch}` : `${baseRef}...${branch}`;
     const args = ["diff", ...(opts?.patch ? [] : ["--stat"]), range, "--"];
     const out = await git(clonePath, args).catch(() => "");
-    // Include uncommitted worktree changes (staged + unstaged).
-    const dirty = await git(clonePath, ["diff", "HEAD", ...(opts?.patch ? [] : ["--stat"])]).catch(() => "");
+    // Uncommitted worktree changes (staged + unstaged). On blobless (blob:none) promisor
+    // clones, `git diff HEAD` can hang trying to fetch missing blobs even on a clean tree,
+    // so only run it when `git status --porcelain` shows actual changes.
+    let dirty = "";
+    const status = await git(clonePath, ["status", "--porcelain"], 15_000).catch(() => "");
+    if (status.trim()) {
+      dirty = await git(clonePath, ["diff", "HEAD", ...(opts?.patch ? [] : ["--stat"])], 20_000).catch(() => "");
+    }
     const combined = [out, dirty].filter(Boolean).join("\n");
     return { ok: true, branch, base: mergeBase || baseRef, diff: combined, patch: opts?.patch === true };
   } catch (e) {
@@ -247,8 +253,11 @@ const COMMAND_POLICY_DENY: string[] = [
   "python3 -c 'import socket,subprocess", // python reverse shell
 ];
 
-async function git(cwd: string, args: string[]): Promise<string> {
-  const r = await exec(GIT, args, { cwd, timeout: 60_000, maxBuffer: 4 * 1024 * 1024 });
+async function git(cwd: string, args: string[], timeoutMs = 60_000): Promise<string> {
+  // GIT_NO_LAZY_FETCH=1: on blobless (blob:none) promisor clones, git diff/status can hang
+  // fetching missing blobs from the remote. Fail fast instead — a review diff never needs
+  // to download blobs it doesn't already have.
+  const r = await exec(GIT, args, { cwd, timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024, env: { ...process.env, GIT_NO_LAZY_FETCH: "1" } });
   return r.stdout;
 }
 

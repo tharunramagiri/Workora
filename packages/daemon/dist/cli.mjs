@@ -8896,7 +8896,11 @@ async function diffBranch(clonePath, base, opts) {
     const range = mergeBase ? `${mergeBase}..${branch}` : `${baseRef}...${branch}`;
     const args2 = ["diff", ...opts?.patch ? [] : ["--stat"], range, "--"];
     const out = await git(clonePath, args2).catch(() => "");
-    const dirty = await git(clonePath, ["diff", "HEAD", ...opts?.patch ? [] : ["--stat"]]).catch(() => "");
+    let dirty = "";
+    const status = await git(clonePath, ["status", "--porcelain"], 15e3).catch(() => "");
+    if (status.trim()) {
+      dirty = await git(clonePath, ["diff", "HEAD", ...opts?.patch ? [] : ["--stat"]], 2e4).catch(() => "");
+    }
     const combined = [out, dirty].filter(Boolean).join("\n");
     return { ok: true, branch, base: mergeBase || baseRef, diff: combined, patch: opts?.patch === true };
   } catch (e) {
@@ -9010,8 +9014,8 @@ var COMMAND_POLICY_DENY = [
   "python3 -c 'import socket,subprocess"
   // python reverse shell
 ];
-async function git(cwd, args2) {
-  const r = await exec(GIT, args2, { cwd, timeout: 6e4, maxBuffer: 4 * 1024 * 1024 });
+async function git(cwd, args2, timeoutMs = 6e4) {
+  const r = await exec(GIT, args2, { cwd, timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024, env: { ...process.env, GIT_NO_LAZY_FETCH: "1" } });
   return r.stdout;
 }
 async function ensureProjectsRootDir() {
