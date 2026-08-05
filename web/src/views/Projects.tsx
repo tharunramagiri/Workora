@@ -46,6 +46,9 @@ export function Projects() {
   const [bindMsg, setBindMsg] = useState("");
   const [testing, setTesting] = useState(false);
   const [testOutput, setTestOutput] = useState("");
+  const [diffText, setDiffText] = useState("");
+  const [diffBranchName, setDiffBranchName] = useState("");
+  const [loadingDiff, setLoadingDiff] = useState(false);
 
   const inactiveAgents = agents.filter((a) => a.status === "inactive" || a.status === "sleeping");
 
@@ -149,6 +152,18 @@ export function Projects() {
     finally { setTesting(false); }
   };
 
+  // Show what the agent actually changed (genoffice borrow): stat summary + full patch toggle.
+  const loadDiff = async (patch: boolean) => {
+    if (!cur) return;
+    setLoadingDiff(true);
+    try {
+      const r = await api("POST", `/api/projects/${cur.id}/diff`, { patch });
+      if (r?.ok) { setDiffText(String(r.diff ?? "")); setDiffBranchName(String(r.branch ?? cur.name)); }
+      else setDiffText(r?.error ? `error: ${r.error}` : "no diff");
+    } catch (e: any) { setDiffText(String(e?.message ?? e)); }
+    finally { setLoadingDiff(false); }
+  };
+
   const doPush = async () => {
     if (!cur) return;
     setPushing(true);
@@ -200,6 +215,7 @@ export function Projects() {
             <div className="head"><h1>{cur.name}</h1><small>{cur.repoUrl} · {statusLabel(cur)}</small>
               <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
                 {cur.channelId && <button className="action-btn" onClick={() => nav(`/s/${slug}/channel/${cur.channelId}`)}>{t("projects.openChannel")}</button>}
+                <button className="action-btn" disabled={loadingDiff} onClick={() => void loadDiff(false)}>{loadingDiff ? "…" : "Diff"}</button>
                 <button className="action-btn" disabled={testing} onClick={() => void runTests()}>{testing ? t("projects.testing") : t("projects.test")}</button>
                 <button className="action-btn" disabled={syncing} onClick={() => void sync()}>{syncing ? "…" : t("projects.sync")}</button>
                 <button className="danger-btn" onClick={() => void remove()}>{t("projects.remove")}</button>
@@ -212,6 +228,16 @@ export function Projects() {
                 {cur.lastCommit && <div className="kv"><b>{t("projects.lastCommit")}</b> <code>{cur.lastCommit}</code></div>}
                 {cur.lastError && <div className="form-err">{t("projects.error")}: {cur.lastError}</div>}
                 {testOutput && <pre className="project-test-out" style={{ marginTop: 10, fontSize: 12, maxHeight: 200, overflow: "auto", background: "var(--surface-strong)", padding: 10, borderRadius: 8 }}>{testOutput}</pre>}
+                {diffText && (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                      <b style={{ fontSize: 13 }}>{t("projects.diff")} — {diffBranchName}</b>
+                      <button className="action-btn" onClick={() => void loadDiff(diffText.includes("@@"))}>Toggle full patch</button>
+                      <button className="action-btn" onClick={() => setDiffText("")}>Close</button>
+                    </div>
+                    <pre className="project-diff" style={{ fontSize: 12, lineHeight: 1.5, maxHeight: 360, overflow: "auto", background: "var(--surface-strong)", padding: 10, borderRadius: 8, whiteSpace: "pre", fontFamily: "var(--mono)" }}>{diffText}</pre>
+                  </div>
+                )}
               </div>
 
               {branches && branches.length > 0 && (

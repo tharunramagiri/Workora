@@ -8887,6 +8887,22 @@ async function pullRepo(clonePath, branch) {
     return { ok: false, error: errMsg(e), code: "git_pull_failed" };
   }
 }
+async function diffBranch(clonePath, base, opts) {
+  try {
+    assertInsideRoots(clonePath);
+    const branch = await git(clonePath, ["rev-parse", "--abbrev-ref", "HEAD"]).then((b) => b.trim());
+    const baseRef = base && base.trim() ? base.trim() : "origin/main";
+    const mergeBase = await git(clonePath, ["merge-base", branch, baseRef]).then((b) => b.trim()).catch(() => "");
+    const range = mergeBase ? `${mergeBase}..${branch}` : `${baseRef}...${branch}`;
+    const args2 = ["diff", ...opts?.patch ? [] : ["--stat"], range, "--"];
+    const out = await git(clonePath, args2).catch(() => "");
+    const dirty = await git(clonePath, ["diff", "HEAD", ...opts?.patch ? [] : ["--stat"]]).catch(() => "");
+    const combined = [out, dirty].filter(Boolean).join("\n");
+    return { ok: true, branch, base: mergeBase || baseRef, diff: combined, patch: opts?.patch === true };
+  } catch (e) {
+    return { ok: false, error: errMsg(e), code: "git_diff_failed" };
+  }
+}
 async function commitAndPush(clonePath, branch, message, author) {
   try {
     assertInsideRoots(clonePath);
@@ -9177,6 +9193,12 @@ conn = new Connection(serverUrl, apiKey, (msg) => {
       void repoStatus(String(msg.clonePath ?? "")).then(
         (result) => conn.send({ type: "git:status", requestId: msg.requestId, ...result }),
         (cause) => conn.send({ type: "git:status", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) })
+      );
+      break;
+    case "git:diff":
+      void diffBranch(String(msg.clonePath ?? ""), typeof msg.base === "string" ? msg.base : void 0, { patch: msg.patch === true, stat: msg.stat !== false }).then(
+        (result) => conn.send({ type: "git:diff", requestId: msg.requestId, ...result }),
+        (cause) => conn.send({ type: "git:diff", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) })
       );
       break;
     case "git:pull":

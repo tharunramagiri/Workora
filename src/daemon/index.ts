@@ -14,7 +14,7 @@ import { createLogger } from "../log.js";
 import { machineIdFile } from "../paths.js";
 import { AGENT_CONTROL_ACK_CAPABILITY, DELIVERY_ADMISSION_CAPABILITY, PROJECT_BROWSER_CAPABILITY, PROJECT_DIRECTORY_CAPABILITY } from "../daemonProtocol.js";
 import { browseProjectDirectories, ProjectDirectoryError, resolveProjectDirectory } from "./projectDirectory.js";
-import { cloneRepo, repoStatus, pullRepo, commitAndPush, ensureProjectsRootDir, listBranches, checkoutBranch, runProjectTests } from "./gitOps.js";
+import { cloneRepo, repoStatus, pullRepo, commitAndPush, ensureProjectsRootDir, listBranches, checkoutBranch, runProjectTests, diffBranch } from "./gitOps.js";
 
 const log = createLogger("daemon");
 const DELIVERY_PENDING_HEARTBEAT_MS = Math.max(250, Number(process.env.OPEN_WORKORA_DELIVERY_PENDING_HEARTBEAT_MS ?? 750));
@@ -144,6 +144,10 @@ conn = new Connection(serverUrl, apiKey, (msg) => {
     case "git:status": void repoStatus(String(msg.clonePath ?? "")).then(
       (result) => conn.send({ type: "git:status", requestId: msg.requestId, ...result }),
       (cause) => conn.send({ type: "git:status", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) }),
+    ); break;
+    case "git:diff": void diffBranch(String(msg.clonePath ?? ""), typeof msg.base === "string" ? msg.base : undefined, { patch: msg.patch === true, stat: msg.stat !== false }).then(
+      (result) => conn.send({ type: "git:diff", requestId: msg.requestId, ...result }),
+      (cause) => conn.send({ type: "git:diff", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) }),
     ); break;
     case "git:pull": void pullRepo(String(msg.clonePath ?? ""), typeof msg.branch === "string" ? msg.branch : undefined).then(
       (result) => conn.send({ type: "git:pulled", requestId: msg.requestId, ...result }),

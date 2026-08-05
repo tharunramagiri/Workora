@@ -110,6 +110,34 @@ export async function pullRepo(clonePath: string, branch?: string): Promise<GitO
 }
 
 /**
+ * Diff a working tree or branch against a base ref (genoffice "patch-not-rewrite" borrow:
+ * show the minimal set of changes an agent made, so reviews see exactly what changed).
+ *
+ *   base default: diff the current branch against its merge-base with the default branch
+ *   (or against the default branch if no merge-base). `--stat` returns per-file change
+ *   counts; the caller can pass `patch: true` to get the full unified diff text.
+ *   Uncommitted work (dirty working tree) is included via `git diff` on the worktree.
+ */
+export async function diffBranch(clonePath: string, base?: string, opts?: { patch?: boolean; stat?: boolean }): Promise<GitOpResult> {
+  try {
+    assertInsideRoots(clonePath);
+    const branch = await git(clonePath, ["rev-parse", "--abbrev-ref", "HEAD"]).then((b) => b.trim());
+    const baseRef = base && base.trim() ? base.trim() : "origin/main";
+    // Merge-base with the base ref; fall back to the base ref itself.
+    const mergeBase = await git(clonePath, ["merge-base", branch, baseRef]).then((b) => b.trim()).catch(() => "");
+    const range = mergeBase ? `${mergeBase}..${branch}` : `${baseRef}...${branch}`;
+    const args = ["diff", ...(opts?.patch ? [] : ["--stat"]), range, "--"];
+    const out = await git(clonePath, args).catch(() => "");
+    // Include uncommitted worktree changes (staged + unstaged).
+    const dirty = await git(clonePath, ["diff", "HEAD", ...(opts?.patch ? [] : ["--stat"])]).catch(() => "");
+    const combined = [out, dirty].filter(Boolean).join("\n");
+    return { ok: true, branch, base: mergeBase || baseRef, diff: combined, patch: opts?.patch === true };
+  } catch (e) {
+    return { ok: false, error: errMsg(e), code: "git_diff_failed" };
+  }
+}
+
+/**
  * Commit all changes on a feature branch and push it to the remote.
  * This is the "agent ships a PR" primitive: work on branch `workora/<task>/<agent>`,
  * commit + push, and report the branch name back so the UI shows a ready-to-review PR.

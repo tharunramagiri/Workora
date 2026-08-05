@@ -687,7 +687,8 @@
     "bindDone": "Agent bound and started. It will work on this repo.",
     "bindFailed": "Could not bind: {error}",
     "test": "Test",
-    "testing": "Testing…"
+    "testing": "Testing…",
+    "diff": "Diff"
   },
   "skills": {
     "title": "Skills",

@@ -92,7 +92,7 @@ export async function handleProjects(ctx: ServerCtx): Promise<boolean> {
     }
 
     if (method === "POST") {
-      const sub = /^\/(sync|push|branch-channel|branches|checkout|test)$/.exec(url.pathname.slice(m[0].length));
+      const sub = /^\/(sync|push|branch-channel|branches|checkout|test|diff)$/.exec(url.pathname.slice(m[0].length));
       if (!sub) return (sendErr(res, 404, "not found"), true);
       const op = sub[1]!;
       if (op === "branch-channel") {
@@ -118,6 +118,19 @@ export async function handleProjects(ctx: ServerCtx): Promise<boolean> {
         if (rpc?.ok !== true) return (sendJson(res, 200, { ok: false, error: rpc?.error ?? "checkout failed" }), true);
         await db.update(schema.projects).set({ lastCommit: rpc.commit ?? null }).where(eq(schema.projects.id, id));
         return (sendJson(res, 200, { ok: true, branch: rpc.branch, commit: rpc.commit }), true);
+      }
+      if (op === "diff") {
+        // Per-file diff of the project's current branch vs base (genoffice borrow): lets a
+        // reviewer see exactly what an agent changed (stat summary, or full patch when
+        // patch=true) instead of trusting a summary message.
+        const b = await readJsonSafe(req);
+        const rpc = await requestDaemonByMachine(row.machineId, {
+          type: "git:diff", clonePath: row.clonePath,
+          base: typeof b.base === "string" && b.base.trim() ? b.base.trim() : undefined,
+          patch: b.patch === true,
+        }, 30_000);
+        if (rpc?.ok !== true) return (sendJson(res, 200, { ok: false, error: rpc?.error ?? "diff failed" }), true);
+        return (sendJson(res, 200, { ok: true, branch: rpc.branch, base: rpc.base, diff: rpc.diff ?? "", patch: rpc.patch === true }), true);
       }
       if (op === "test") {
         const b = await readJsonSafe(req);
