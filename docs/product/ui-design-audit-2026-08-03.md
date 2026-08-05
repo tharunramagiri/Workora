@@ -60,3 +60,35 @@ Deploying the fixes triggered a VPS outage. Root causes diagnosed and fixed:
 - **Broken DNS after reboot**: Tailscale overwrote `/etc/resolv.conf` with its broken DNS, breaking deploys (`EAI_AGAIN`). Pinned resolv.conf to provider DNS + made immutable (`chattr +i`).
 
 Site recovered, UI fixes deployed and verified live (HTTP 200).
+
+## 5. Follow-up audit (2026-08-05) — button/input unification
+
+A follow-up cross-surface audit (gstack design-review + qm design principles) found
+a systemic control mismatch: **bare `.ok` buttons and `.inp` inputs had no unscoped
+CSS rule**, so content views (Knowledge, Reminders, Projects, Onboarding) and the
+auth pages fell back to browser-default gray square buttons + Arial inputs, while
+landing/chat/modals used the ink pill.
+
+| Surface (before) | Button | Input |
+|---|---|---|
+| Login | gray #efefef, square, black | — |
+| Knowledge/Reminders/Projects | gray #efefef, square, black | Arial, radius 0 |
+| Onboarding | gray #efefef, square, black | — |
+| Chat / landing | ink pill ✅ | Inter ✅ |
+
+**Fix (commit `43a2225`):**
+- Added bare `.ok`: ink-2 pill, white text, 9999px radius, hover ink — matches
+  `.setform .ok` / `.modal .ok` / chat send / landing primary CTA
+- Added bare `.inp`: Inter, hair border, 8px radius, ink focus ring (fixes Arial)
+- `.auth-card` radius 8px → 16px to match the `.card` system
+
+**Verified live (computed styles after deploy):**
+| Surface (after) | Button | Input |
+|---|---|---|
+| Login | ink #292524, pill 9999px | — |
+| Knowledge/Reminders/Projects | ink #292524, pill 9999px | Inter, 8px |
+| Onboarding | ink #292524, pill 9999px | — |
+| Chat | ink pill (unchanged) | Inter |
+
+Design principle applied (qm): "make clickable things obviously clickable" — a
+consistent pill affordance signals interactivity without hover.
