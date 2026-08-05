@@ -27,3 +27,7 @@ _vendor/
 bridges/node_modules/
 bridges/.wa-session/
 mobile/node_modules/
+
+# Command Center deps
+command-center/node_modules/
+command-center/.next/

@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0c0a09; --surface: #1c1917; --surface-strong: #292524;
+  --ink: #e7e5e4; --muted: #a8a29e; --accent: #f97316;
+  --accent-soft: rgba(249,115,22,0.14); --ok: #16a34a; --warn: #b9770e;
+  --err: #dc2626; --hair: #292524; --hair-strong: #44403c;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: Inter, system-ui, sans-serif; margin: 0; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot.working { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.dot.thinking { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+.dot.offline { background: var(--err); }
+.dot.sleeping { background: var(--muted); }
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 9999px; background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(249,115,22,0.3); }
+.card { background: var(--surface); border: 1px solid var(--hair); border-radius: 16px; padding: 16px; }

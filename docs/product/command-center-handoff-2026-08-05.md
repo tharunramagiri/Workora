@@ -1,0 +1,218 @@
+# Workora Command Center — Executor Handoff Package
+
+Prepared: 2026-08-05
+For: the coding agent (Claude Code / Codex) that will build the Command Center
+Spec source: `/home/tarun/research/workora-command-center-plan.md` (CEO plan)
+Scope: Phase 1 buildable now; Phases 2-5 sequenced after.
+
+---
+
+## 1. What we're building
+
+**Vision:** `office.ramagiritharun.in` becomes a command center — open it, see the
+whole company live: who's working, what's shipping, what's blocked. Brief once,
+agents ship forever, every deliverable is a live link. Hyperagent experience,
+self-hosted, zero per-task fees.
+
+**Design language (matches hyperagent + Buzz quality):**
+- Dark theme + `#f97316` orange accent
+- Lottie avatars for agents
+- Command center: agent roster grid with live status dots (🟢 working / 🟡 thinking / 🔴 blocked/offline), company pulse, activity feed
+- Agent detail: role card + live execution trace (watch them work) + deliverables
+- Kanban task board + deliverables gallery (stays-alive links)
+- Brief composer: type a brief → auto-routes to the right agents
+
+---
+
+## 2. Architecture (thin, reuses existing infra)
+
+```
+┌─ Command Center (NEW) ────────────────────────────────┐
+│ Next.js (App Router) + Tailwind + shadcn/ui           │
+│ Dark theme + #f97316 + Lottie avatars                 │
+│                                                       │
+│  Roster grid │ Agent detail │ Kanban │ Brief composer │
+└──────────────┬────────────────────────────────────────┘
+               │ thin API + SSE
+┌──────────────▼────────────────────────────────────────┐
+│ Existing Workora (office.ramagiritharun.in)           │
+│  · REST /api/* (agents, machines, tasks, channels)    │
+│  · daemon WS (agent lifecycle, live activity)         │
+│  · existing auth (JWT + x-server-id)                  │
+└───────────────────────────────────────────────────────┘
+```
+
+**Key decisions:**
+- **Thin API over the existing daemon** — do NOT reimplement agent logic. The
+  Command Center calls the existing `/api/*` endpoints and subscribes to the same
+  realtime events the current web app uses.
+- **SSE for live traces** — the existing app uses socket.io for realtime. For the
+  Command Center, use an SSE endpoint (or reuse socket.io) that streams agent
+  activity (`agent_activity_log` rows, activity status changes). Simplest first:
+  poll the existing activity endpoints + add an SSE route on the existing server.
+- **Deploy on Dokploy, same project** — add a second container/service in the
+  same Dokploy app or a sibling app pointing at the same Postgres. The Command
+  Center is a separate frontend that calls the same backend.
+
+---
+
+## 3. Data surface (what exists to build on)
+
+From the current Workora codebase:
+
+| Need | Existing endpoint / source |
+|---|---|
+| Agent roster | `GET /api/agents` → id, name, status, activity, runtime, machineId |
+| Machine/status | `GET /api/servers/:id/machines` → online/offline, runtimes |
+| Live activity | `agent_activity_log` table + socket.io events (`activity` statuses: online/working/thinking/offline) |
+| Task board | `GET /api/tasks/server`, `GET /api/tasks/channel/:id` → open/claimed/done |
+| Deliverables | Projects (`/api/projects`) + branch channels; the diff panel (new) surfaces agent file changes |
+| Briefs | Create tasks via `POST /api/tasks/channel/:id` or `POST /api/messages` with @mention |
+| Agent role/skills | `personality.md` (role) + `/api/skills` (assigned skill badges) |
+| Knowledge | `/api/knowledge` |
+
+**Auth:** reuse the existing JWT (`Workora.token` in localStorage) + `x-server-id`
+header. The Command Center's API routes proxy to the existing backend with the
+user's token — do not create a second auth system.
+
+---
+
+## 4. Phase 1 spec (build this first, 3-4 days)
+
+**Goal:** a visible win — the command center shell with a live agent roster.
+
+### 4.1 Pages / routes
+- `/` — Command Center home: company pulse + agent roster grid + activity feed
+- `/agent/[id]` — agent detail: role card + live trace + deliverables (Phase 3 fills trace)
+
+### 4.2 Roster grid (the centerpiece)
+Each agent card shows:
+- Lottie avatar (or generated avatar fallback)
+- name + displayName
+- status dot: 🟢 working (activity=working/active) / 🟡 thinking (activity=thinking) / 🔴 offline (inactive/offline) / ⚪ sleeping
+- runtime badge (claude/codex/opencode/...)
+- assigned skills (badges from `/api/skills` — this is the hyperagent "what can this agent do" layer)
+- last activity timestamp
+
+Grid updates **live** — subscribe to the same activity events the current app
+uses (socket.io) or poll `/api/agents` every 3-5s as a v1 fallback. Live dots are
+the "wow" moment; polling is acceptable to ship first.
+
+### 4.3 Company pulse (top bar)
+- total agents, agents working now, agents offline
+- open tasks count, blocked count
+- machines online count
+
+### 4.4 Activity feed (right rail)
+- chronological stream of agent status changes + task claims + deliverables
+- newest first, auto-appends live
+
+### 4.5 Design tokens (lock these first)
+```css
+:root {
+  --bg: #0c0a09;            /* near-black, warm */
+  --surface: #1c1917;       /* card */
+  --surface-strong: #292524;
+  --ink: #e7e5e4;           /* primary text */
+  --muted: #a8a29e;
+  --accent: #f97316;        /* orange */
+  --accent-soft: rgba(249,115,22,0.14);
+  --success: #16a34a;
+  --warn: #b9770e;
+  --error: #dc2626;
+  --hair: #292524;
+  --hair-strong: #44403c;
+}
+```
+Typography: Inter (body) + EB Garamond (display) — matches existing brand.
+Radius scale: 8/12/16/24. Spacing: 4px base.
+
+---
+
+## 5. Phase 2-5 summaries (sequence after Phase 1)
+
+- **Phase 2 — tasks + briefs loop (3-4d):** kanban board (open/claimed/done from
+  existing tasks API), brief composer → routes to right agents by role/skill
+  (@mention), task cards link to channels.
+- **Phase 3 — transparent execution + deliverables (3-4d):** agent detail live
+  execution trace (SSE/socket of activity log), deliverables gallery (projects,
+  branches, diff panel links — "stays-alive links").
+- **Phase 4 — role system + skill badges (2-3d):** import the hyperagent public
+  skill library (see §6), map skills onto agents, render as visible badges.
+- **Phase 5 — polish + approval gates (2-3d):** motion polish, Lottie avatars,
+  approval-gate UI for risky agent actions (reuse existing action-card pattern).
+
+---
+
+## 6. Skill library reference (the hyperagent "secret")
+
+The plan's core insight: hyperagent publicly publishes its skill library; we
+import those skills and badge them onto agents. Reference:
+
+- **Repo:** `alexmcdonnell-airtable/hyperagent-public-skills` (public, ~12-15 JSON
+  skill packs from the Hyperagent/Airtable team)
+- **Docs:** `hyperagent.com/docs/concepts/skills` — explains global skills vs
+  team skills
+- **Format:** each skill is a portable JSON package (identity + instructions +
+  workflow) that an agent loads at runtime — we can adapt these into Workora
+  skill marketplace entries (our skills are SKILL.md files, assignable per agent)
+
+**Plan for import (Phase 4):**
+1. Clone the hyperagent-public-skills repo
+2. Convert each JSON skill → Workora `POST /api/skills` entry (name, description, content)
+3. Assign to the 10 agents by role (CTO → code-review/security skills, MarketingAI → content skills, etc.)
+4. Render assigned skills as badges on roster cards + agent detail
+
+Known skill themes in the library (verify exact list on clone): Airtable kanban
+management, video/trailer production, API exploration, file conversion, data
+connections, context building, media generation. Adapt the ones that fit Workora's
+10 agents; skip the rest.
+
+---
+
+## 7. Deploy checklist (Dokploy, same project)
+
+**Prereqs (done):**
+- VPS back online (reboot from provider console — it was down 2026-08-05)
+- Existing Workora app healthy (`/health` 200)
+- `INBOUND_WEBHOOK_KEY`, `JWT_SECRET`, `DAEMON_BOOTSTRAP_KEY` in env
+
+**Steps:**
+1. Add the Command Center as a second service in the same Dokploy app (or sibling app):
+   - source: this repo, path `command-center/` (or `apps/command-center`)
+   - build: `npm ci && npm run build`
+   - run: `npm start` on a port (e.g. 3001)
+   - env: `NEXT_PUBLIC_WORKORA_API=https://office.ramagiritharun.in` (or same-origin proxy)
+2. Domain: `cc.ramagiritharun.in` (or `office.ramagiritharun.in/cc`) with HTTPS
+3. Proxy `/api/*` and `/socket.io/*` to the existing backend so the Command Center
+   talks to it same-origin (simplest, avoids CORS)
+4. Smoke test: roster renders, status dots live, agent detail opens
+5. Guardrails (do not remove):
+   - money/payment gates stay on the existing backend
+   - deploy only via Dokploy (no new infra)
+   - brand rules (Workora name/colors) enforced
+
+---
+
+## 8. Definition of done for Phase 1
+
+- [ ] Dark theme + `#f97316` accent applied site-wide
+- [ ] Roster grid renders all agents with live status dots (working/thinking/offline/sleeping)
+- [ ] Company pulse bar shows working/total/offline + task counts
+- [ ] Activity feed streams agent status changes live
+- [ ] Agent detail page shows role card + skill badges (from existing data)
+- [ ] Typecheck + build green; deployed on Dokploy; verified in browser
+- [ ] Guardrails intact (no auth bypass, no new payment surface)
+
+---
+
+## 9. Handoff to executor
+
+Give the executor agent:
+1. This file as the spec
+2. The repo (`/Users/ramagiritharun/.jcode/scratch/workora-repo` or the git remote)
+3. The existing codebase docs: `docs/authorization.md`, `ARCHITECTURE.md`, `web/src/store.tsx` (API patterns), `web/src/views/` (existing views to match)
+4. Access to the running backend for live testing (once VPS is back)
+
+**Recommended:** start with Phase 1 only. It is self-contained and delivers the
+visible "command center" win in 3 days. Phases 2-5 build on it.
