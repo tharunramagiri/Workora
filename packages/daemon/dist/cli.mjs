@@ -9199,21 +9199,12 @@ conn = new Connection(serverUrl, apiKey, (msg) => {
         (cause) => conn.send({ type: "git:status", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) })
       );
       break;
-    case "git:diff": {
-      const cid = String(msg.clonePath ?? "");
-      log3.info("git:diff received", { clonePath: cid, patch: msg.patch === true });
-      void diffBranch(cid, typeof msg.base === "string" ? msg.base : void 0, { patch: msg.patch === true, stat: msg.stat !== false }).then(
-        (result) => {
-          log3.info("git:diff resolved", { ok: result.ok, diffLen: String(result?.diff ?? "").length });
-          conn.send({ type: "git:diff", requestId: msg.requestId, ...result });
-        },
-        (cause) => {
-          log3.error("git:diff rejected", { detail: String(cause instanceof Error ? cause.message : cause) });
-          conn.send({ type: "git:diff", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) });
-        }
+    case "git:diff":
+      void diffBranch(String(msg.clonePath ?? ""), typeof msg.base === "string" ? msg.base : void 0, { patch: msg.patch === true, stat: msg.stat !== false }).then(
+        (result) => conn.send({ type: "git:diff", requestId: msg.requestId, ...result }),
+        (cause) => conn.send({ type: "git:diff", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) })
       );
       break;
-    }
     case "git:pull":
       void pullRepo(String(msg.clonePath ?? ""), typeof msg.branch === "string" ? msg.branch : void 0).then(
         (result) => conn.send({ type: "git:pulled", requestId: msg.requestId, ...result }),

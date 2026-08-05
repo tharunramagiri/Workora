@@ -145,15 +145,10 @@ conn = new Connection(serverUrl, apiKey, (msg) => {
       (result) => conn.send({ type: "git:status", requestId: msg.requestId, ...result }),
       (cause) => conn.send({ type: "git:status", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) }),
     ); break;
-    case "git:diff": {
-      const cid = String(msg.clonePath ?? "");
-      log.info("git:diff received", { clonePath: cid, patch: msg.patch === true });
-      void diffBranch(cid, typeof msg.base === "string" ? msg.base : undefined, { patch: msg.patch === true, stat: msg.stat !== false }).then(
-        (result) => { log.info("git:diff resolved", { ok: result.ok, diffLen: String((result as any)?.diff ?? "").length }); conn.send({ type: "git:diff", requestId: msg.requestId, ...result }); },
-        (cause) => { log.error("git:diff rejected", { detail: String(cause instanceof Error ? cause.message : cause) }); conn.send({ type: "git:diff", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) }); },
-      );
-      break;
-    }
+    case "git:diff": void diffBranch(String(msg.clonePath ?? ""), typeof msg.base === "string" ? msg.base : undefined, { patch: msg.patch === true, stat: msg.stat !== false }).then(
+      (result) => conn.send({ type: "git:diff", requestId: msg.requestId, ...result }),
+      (cause) => conn.send({ type: "git:diff", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) }),
+    ); break;
     case "git:pull": void pullRepo(String(msg.clonePath ?? ""), typeof msg.branch === "string" ? msg.branch : undefined).then(
       (result) => conn.send({ type: "git:pulled", requestId: msg.requestId, ...result }),
       (cause) => conn.send({ type: "git:pulled", requestId: msg.requestId, ok: false, error: String(cause instanceof Error ? cause.message : cause) }),
