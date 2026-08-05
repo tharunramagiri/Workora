@@ -116,24 +116,30 @@ the "wow" moment; polling is acceptable to ship first.
 - newest first, auto-appends live
 
 ### 4.5 Design tokens (lock these first)
+
+**Updated 2026-08-05 to the Hyperagent design language** (matches
+`hyperagent.com/threads/new` + `hyperbrowserai/ui-components`; verified live in a
+browser): pure black surfaces, Geist type, near-white/gray text, blue accents.
+
 ```css
 :root {
-  --bg: #0c0a09;            /* near-black, warm */
-  --surface: #1c1917;       /* card */
-  --surface-strong: #292524;
-  --ink: #e7e5e4;           /* primary text */
-  --muted: #a8a29e;
-  --accent: #f97316;        /* orange */
-  --accent-soft: rgba(249,115,22,0.14);
-  --success: #16a34a;
-  --warn: #b9770e;
-  --error: #dc2626;
-  --hair: #292524;
-  --hair-strong: #44403c;
+  --background: #000000;            /* surface.base */
+  --surface: #0D0D0D;               /* surface.muted ≈ lab(2.48 0 0) */
+  --surface-strong: #0a1628;        /* surface.strong (dark navy) */
+  --foreground: #EBEBEB;            /* text.primary ≈ lab(93.04 0 0) */
+  --muted-foreground: #A4A4A4;      /* text.secondary ≈ lab(67.52 0 0) */
+  --tertiary: #b2d0fa;              /* text.tertiary */
+  --primary: #2e63e8;               /* hyperagent blue */
+  --primary-soft: rgba(46, 99, 232, 0.12);
+  --border: rgba(58, 58, 58, 0.5);  /* border.default ≈ lab(24.6 0 0 / 0.5) */
+  --border-strong: rgba(255, 255, 255, 0.1);
+  --ok: #00d5a6; --warn: #ffb527; --err: #f94144; /* status dots */
 }
 ```
-Typography: Inter (body) + EB Garamond (display) — matches existing brand.
-Radius scale: 8/12/16/24. Spacing: 4px base.
+
+Typography: Geist (body + display, `geist/font/sans`), base 16px/24px line.
+Radius scale: 6/8/12/pill. Spacing: 4px base. Motion: 150/200ms. Sidebar
+navigation mirrors Hyperagent (logo, primary action, Agents + Resources).
 
 ---
 

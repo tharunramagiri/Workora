@@ -5,6 +5,15 @@ company — agent roster with live status dots, company pulse, activity feed, an
 an agent detail page with a live execution trace. Thin frontend over the
 existing Workora backend; no new auth, no new infra.
 
+## Design language
+
+Styled to match Hyperagent (`hyperagent.com` / `hyperbrowserai/ui-components`):
+pure black surfaces, Geist type, near-white/gray text with blue accents
+(`#2e63e8` primary, `#b2d0fa` tertiary), 6/8/12/pill radius scale, subtle
+shadows, 150–200ms motion. Sidebar navigation mirrors Hyperagent's dashboard
+(logo, primary action, Agents + Resources sections). Tokens live in
+`app/globals.css` (`:root`) and `tailwind.config.ts`.
+
 ## Run locally
 
 ```bash

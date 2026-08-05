@@ -17,6 +17,7 @@ import {
 import type { ActivityItem, Agent, Machine, Skill, Task } from "../lib/types";
 import { activityEntries, mergeFeed, statusEntries, taskEntries, type FeedEntry } from "../lib/feed";
 import SignInGate from "../components/gate";
+import Sidebar from "../components/sidebar";
 
 const POLL_MS = 5000;
 
@@ -86,8 +87,7 @@ export default function CommandCenterHome() {
     for (const batch of logs) entries.push(...batch);
 
     // Merge new entries into the accumulated stream, newest first, deduped,
-    // capped. Dedupe keeps the newest occurrence of each id (mergeFeed sorts
-    // newest-first before we filter).
+    // capped. Dedupe keeps the newest occurrence of each id.
     const merged = mergeFeed([...entries, ...feedRef.current]);
     const seen = new Set<string>();
     const nextFeed = merged.filter((e) => {
@@ -131,7 +131,8 @@ export default function CommandCenterHome() {
   }, [boot, load]);
 
   if (phase === "no-token" || phase === "expired") return <SignInGate reason={phase} />;
-  if (phase === "boot") return <div className="min-h-screen flex items-center justify-center" style={{ color: "var(--muted)" }}>Booting command center…</div>;
+  if (phase === "boot")
+    return <div className="min-h-screen flex items-center justify-center" style={{ color: "var(--muted-foreground)" }}>Booting command center…</div>;
 
   const machinesOnline = machines.filter((m) => m.status === "online").length;
   const working = visible.filter((a) => dotFor(a) === "working").length;
@@ -148,126 +149,132 @@ export default function CommandCenterHome() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      {/* Header */}
-      <header className="flex flex-wrap items-center justify-between gap-3 mb-5">
-        <div>
-          <h1 className="text-2xl" style={{ fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>
-            Workora <span style={{ color: "var(--accent)" }}>Command Center</span>
-          </h1>
-          <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
-            {workspace.slice(0, 8)} · live · last refresh {relTime(lastRefresh) || "—"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <a
-            href="https://office.ramagiritharun.in"
-            target="_blank"
-            rel="noreferrer"
-            className="btn ghost"
-          >
-            Open Workora ↗
-          </a>
-          <button className="btn" onClick={() => load().catch(() => {})}>
-            ↻ Refresh
-          </button>
-        </div>
-      </header>
+    <div className="flex min-h-screen" style={{ background: "var(--background)" }}>
+      <Sidebar agents={visible} activeLabel="Command Center" />
 
-      {phase === "error" && (
-        <div className="mb-4 text-sm" style={{ color: "var(--err)", background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.3)", borderRadius: 12, padding: "10px 14px" }}>
-          {error}
-        </div>
-      )}
+      <div className="glass-bg flex min-w-0 flex-1 flex-col">
+        <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 py-8 md:py-12">
+          {/* Header / greeting */}
+          <header className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h1 className="display" style={{ color: "var(--foreground)" }}>
+                Let&apos;s get to work.
+              </h1>
+              <p className="mt-2 text-sm" style={{ color: "var(--muted-foreground)" }}>
+                See who&apos;s working, what&apos;s shipping, what&apos;s blocked.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {lastRefresh > 0 && (
+                <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                  updated {relTime(lastRefresh)}
+                </span>
+              )}
+              <button className="btn" onClick={() => load().catch(() => {})} aria-label="Refresh roster">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6" />
+                </svg>
+                Refresh
+              </button>
+            </div>
+          </header>
 
-      {/* Company pulse */}
-      <section className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
-        <PulseCard label="Agents" value={visible.length} icon="🤖" />
-        <PulseCard label="Working now" value={working} icon="⚡" color="var(--ok)" />
-        <PulseCard label="Thinking" value={thinking} icon="💭" color="var(--warn)" />
-        <PulseCard label="Sleeping" value={sleeping} icon="🌙" color="var(--muted)" />
-        <PulseCard label="Offline" value={offline} icon="🔴" color="var(--err)" />
-        <PulseCard label="Machines online" value={machinesOnline} icon="🖥" />
-      </section>
-      <section className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 mb-8">
-        <PulseCard label="Open tasks" value={openTasks} icon="📋" accent />
-        <PulseCard label="Tasks done" value={tasks.length - openTasks} icon="✅" />
-        <PulseCard label="Skills catalog" value={skills.length} icon="🧩" />
-      </section>
-
-      {/* Roster + feed */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6">
-        <section>
-          <h2 className="section-title">Agent roster</h2>
-          {visible.length === 0 ? (
-            <p style={{ color: "var(--muted)" }}>
-              No agents yet — create agents in Workora, then watch them appear here live.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {visible.map((a) => (
-                <Link key={a.id} href={`/agent/${a.id}`} className="agent-card">
-                  <div className="flex items-center gap-3 mb-3">
-                    {signedAvatar(a.avatarUrl) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={signedAvatar(a.avatarUrl)!} alt="" className="avatar" />
-                    ) : (
-                      <div className="avatar" style={{ background: "var(--surface-strong)" }}>
-                        {runtimeGlyph(a.runtime)}
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="font-semibold truncate" style={{ color: "var(--ink)" }}>
-                        {a.displayName || a.name}
-                      </div>
-                      <div className="text-xs" style={{ color: "var(--muted)" }}>
-                        @{a.name} · {a.runtime}
-                      </div>
-                    </div>
-                    <span className={`dot ${dotFor(a)}`} title={`${dotLabel(dotFor(a))} · ${a.activity || a.status}`} />
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="badge">{dotLabel(dotFor(a))}</span>
-                    {a.model && (
-                      <span className="badge neutral">{a.model}</span>
-                    )}
-                    {(skillNames.get(a.name) || []).slice(0, 3).map((s) => (
-                      <span key={s} className="badge neutral" title={s}>
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="text-xs mt-3" style={{ color: "var(--muted)" }}>
-                    {a.activity ? `last: ${a.activity}` : a.status}
-                  </div>
-                </Link>
-              ))}
+          {phase === "error" && (
+            <div className="text-sm" style={{ color: "var(--err)", background: "rgba(249,68,68,0.08)", border: "1px solid rgba(249,68,68,0.3)", borderRadius: 12, padding: "10px 14px" }}>
+              {error}
             </div>
           )}
-        </section>
 
-        <aside>
-          <h2 className="section-title">Live activity</h2>
-          <div className="feed">
-            {feed.length === 0 ? (
-              <p className="text-sm" style={{ color: "var(--muted)" }}>
-                Nothing yet. Activity streams in as agents work.
-              </p>
-            ) : (
-              feed.map((f) => <FeedRow key={f.id} f={f} />)
-            )}
+          {/* Company pulse */}
+          <section className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            <PulseCard label="Agents" value={visible.length} />
+            <PulseCard label="Working" value={working} color="var(--ok)" />
+            <PulseCard label="Thinking" value={thinking} color="var(--warn)" />
+            <PulseCard label="Sleeping" value={sleeping} />
+            <PulseCard label="Offline" value={offline} color="var(--err)" />
+            <PulseCard label="Machines" value={machinesOnline} />
+          </section>
+
+          <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_320px]">
+            {/* Agent roster */}
+            <section>
+              <h2 className="mb-3 flex items-baseline justify-between">
+                <span className="text-lg font-medium" style={{ color: "var(--foreground)" }}>Agent roster</span>
+                <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{openTasks} open tasks</span>
+              </h2>
+              {visible.length === 0 ? (
+                <div className="card p-8 text-center">
+                  <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+                    No agents yet — create agents in Workora, then watch them appear here live.
+                  </p>
+                </div>
+              ) : (
+                <div className="columns-1 gap-3 sm:columns-2 lg:columns-3">
+                  {visible.map((a) => (
+                    <Link key={a.id} href={`/agent/${a.id}`} className="card card-hover mb-3 block break-inside-avoid p-0">
+                      <div className="relative z-[2] flex flex-col p-4">
+                        <div className="flex items-center gap-3">
+                          {signedAvatar(a.avatarUrl) ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={signedAvatar(a.avatarUrl)!} alt="" className="avatar" />
+                          ) : (
+                            <div className="avatar">{runtimeGlyph(a.runtime)}</div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-medium leading-tight" style={{ color: "var(--foreground)" }}>
+                              {a.displayName || a.name}
+                            </div>
+                            <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                              @{a.name}
+                            </div>
+                          </div>
+                          <span className={`dot ${dotFor(a)}`} title={`${dotLabel(dotFor(a))} · ${a.activity || a.status}`} />
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                          <span className={`chip ${dotFor(a) === "working" ? "ok" : dotFor(a) === "thinking" ? "warn" : dotFor(a) === "offline" ? "err" : ""}`}>
+                            {dotLabel(dotFor(a))}
+                          </span>
+                          <span className="chip">{a.runtime}</span>
+                          {a.model && <span className="chip">{a.model}</span>}
+                          {(skillNames.get(a.name) || []).slice(0, 2).map((s) => (
+                            <span key={s} className="chip accent" title={s}>{s}</span>
+                          ))}
+                        </div>
+                        <div className="mt-2 text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                          {a.activity ? `last: ${a.activity}` : a.status}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Activity feed */}
+            <aside>
+              <h2 className="mb-3 text-lg font-medium" style={{ color: "var(--foreground)" }}>Live activity</h2>
+              <div className="card p-2">
+                {feed.length === 0 ? (
+                  <p className="px-3 py-4 text-sm" style={{ color: "var(--muted-foreground)" }}>
+                    Nothing yet. Activity streams in as agents work.
+                  </p>
+                ) : (
+                  feed.map((f) => <FeedRow key={f.id} f={f} />)
+                )}
+              </div>
+            </aside>
           </div>
-        </aside>
+        </div>
       </div>
     </div>
   );
 }
 
-function PulseCard({ label, value, icon, color, accent }: { label: string; value: number; icon: string; color?: string; accent?: boolean }) {
+function PulseCard({ label, value, color }: { label: string; value: number; color?: string }) {
   return (
-    <div className="pulse-card" style={accent ? { borderColor: "rgba(249,115,22,0.4)", background: "linear-gradient(180deg, var(--accent-soft), transparent)" } : undefined}>
-      <div className="text-xs" style={{ color: "var(--muted)" }}>{icon} {label}</div>
-      <div className="text-2xl font-semibold mt-1" style={{ color: color || "var(--ink)" }}>{value}</div>
+    <div className="pulse-card">
+      <div className="label">{label}</div>
+      <div className="value" style={{ color: color || "var(--foreground)" }}>{value}</div>
     </div>
   );
 }
@@ -279,12 +286,12 @@ function FeedRow({ f }: { f: FeedEntry }) {
       <div className="flex items-start gap-3">
         <div className="feed-icon">{icon}</div>
         <div className="min-w-0 flex-1">
-          <div className="text-sm" style={{ color: "var(--ink)" }}>
+          <div className="text-sm leading-tight" style={{ color: "var(--foreground)" }}>
             {f.agentName ? <span className="font-medium">{f.agentName}</span> : null}{" "}
-            <span style={{ color: "var(--muted)" }}>{f.title}</span>
+            <span style={{ color: "var(--muted-foreground)" }}>{f.title}</span>
           </div>
-          {f.detail && <div className="text-xs mt-0.5 truncate" style={{ color: "var(--muted)" }}>{f.detail}</div>}
-          <div className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>{relTime(f.ts)}</div>
+          {f.detail && <div className="mt-0.5 truncate text-xs" style={{ color: "var(--muted-foreground)" }}>{f.detail}</div>}
+          <div className="mt-0.5 text-[11px]" style={{ color: "var(--muted-foreground)" }}>{relTime(f.ts)}</div>
         </div>
       </div>
     </div>
