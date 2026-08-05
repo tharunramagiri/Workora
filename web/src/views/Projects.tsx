@@ -228,14 +228,14 @@ export function Projects() {
                 {cur.lastCommit && <div className="kv"><b>{t("projects.lastCommit")}</b> <code>{cur.lastCommit}</code></div>}
                 {cur.lastError && <div className="form-err">{t("projects.error")}: {cur.lastError}</div>}
                 {testOutput && <pre className="project-test-out" style={{ marginTop: 10, fontSize: 12, maxHeight: 200, overflow: "auto", background: "var(--surface-strong)", padding: 10, borderRadius: 8 }}>{testOutput}</pre>}
-                {diffText && (
+                {diffText !== "" && (
                   <div style={{ marginTop: 10 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                       <b style={{ fontSize: 13 }}>{t("projects.diff")} — {diffBranchName}</b>
-                      <button className="action-btn" onClick={() => void loadDiff(diffText.includes("@@"))}>Toggle full patch</button>
+                      {diffText !== "no diff" && !diffText.startsWith("error") && <button className="action-btn" onClick={() => void loadDiff(diffText.includes("@@"))}>Toggle full patch</button>}
                       <button className="action-btn" onClick={() => setDiffText("")}>Close</button>
                     </div>
-                    <pre className="project-diff" style={{ fontSize: 12, lineHeight: 1.5, maxHeight: 360, overflow: "auto", background: "var(--surface-strong)", padding: 10, borderRadius: 8, whiteSpace: "pre", fontFamily: "var(--mono)" }}>{diffText}</pre>
+                    <pre className="project-diff" style={{ fontSize: 12, lineHeight: 1.5, maxHeight: 360, overflow: "auto", background: "var(--surface-strong)", padding: 10, borderRadius: 8, whiteSpace: "pre", fontFamily: "var(--mono)" }}>{diffText || "No changes on this branch."}</pre>
                   </div>
                 )}
               </div>
