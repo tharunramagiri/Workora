@@ -184,27 +184,30 @@ connections, context building, media generation. Adapt the ones that fit Workora
 
 ---
 
-## 7. Deploy checklist (Dokploy, same project)
+## 7. Deploy checklist (Dokploy, same project) — verified build path
 
 **Prereqs (done):**
-- VPS back online (reboot from provider console — it was down 2026-08-05)
-- Existing Workora app healthy (`/health` 200)
-- `INBOUND_WEBHOOK_KEY`, `JWT_SECRET`, `DAEMON_BOOTSTRAP_KEY` in env
+- VPS online + healthy (`/health` 200) — verified 2026-08-05
+- Repo pushed (`fix-dokploy` = `main` = `72706fa`)
+- **Build path verified**: `npm ci` (111 pkgs) → `npm run typecheck` → `npm test` (9/9) → `npm run build` all green from a clean `node_modules` — exactly what the Dockerfile runs
+- `Dockerfile` (multi-stage, `WORKORA_API` build arg, port 3001) + `command-center/README.md` in the repo
 
-**Steps:**
-1. Add the Command Center as a second service in the same Dokploy app (or sibling app):
-   - source: this repo, path `command-center/` (or `apps/command-center`)
-   - build: `npm ci && npm run build`
-   - run: `npm start` on a port (e.g. 3001)
-   - env: `NEXT_PUBLIC_WORKORA_API=https://office.ramagiritharun.in` (or same-origin proxy)
-2. Domain: `cc.ramagiritharun.in` (or `office.ramagiritharun.in/cc`) with HTTPS
-3. Proxy `/api/*` and `/socket.io/*` to the existing backend so the Command Center
-   talks to it same-origin (simplest, avoids CORS)
-4. Smoke test: roster renders, status dots live, agent detail opens
-5. Guardrails (do not remove):
-   - money/payment gates stay on the existing backend
-   - deploy only via Dokploy (no new infra)
-   - brand rules (Workora name/colors) enforced
+**Steps (needs your Dokploy login — the only user-dependent step left for the Command Center):**
+1. In Dokploy, open the existing Workora app → **Add service / new service** (or a sibling project):
+   - Source: GitHub repo `tharunramagiri/Workora`, branch `main`, **root path** `command-center/`
+   - Build: the repo's `command-center/Dockerfile` (Dokploy detects it), or the compose `build.args` with `WORKORA_API=https://office.ramagiritharun.in`
+   - Port: **3001**; health check optional
+2. Domain: `cc.ramagiritharun.in` (or `office.ramagiritharun.in/cc`) with HTTPS (Traefik auto-certs).
+3. Smoke test after deploy:
+   - `https://cc.ramagiritharun.in/` → sign in at office.ramagiritharun.in first (JWT is shared), then the roster/pulse/feed render
+   - `/tasks` → compose a brief → a task appears with `@mention` routing
+   - `/deliverables`, `/roles`, `/fleet`, `/audit` all load
+4. Optional: run `npm run seed:hyperagent` on the backend once to import the Hyperagent skill library (idempotent).
+
+**Guardrails (do not remove):**
+- money/payment gates stay on the existing backend
+- deploy only via Dokploy (no new infra) — the unmanaged-docker path was deliberately NOT taken
+- brand rules (Workora name/colors) enforced
 
 ---
 
