@@ -33,16 +33,30 @@ Sign in at the backend first (JWT is shared via `localStorage["Workora.token"]`)
 The workspace id is bootstrapped from `GET /api/servers` and remembered in
 `localStorage["Workora.ccServerId"]`.
 
-## What Phase 1 + 2 covers
+## What the Command Center covers (Phases 1–5)
 
 - `/` — command center home: company pulse, live agent roster grid, activity feed
 - `/tasks` — **briefs & tasks loop**: kanban (todo → in_progress → in_review →
   done → closed) over the real tasks API (claim + status moves) + a brief
   composer that creates tasks with `@mention` routing via the real messages API
-  (`asTask`). Built from looper/goal-engineering methodology (see
-  `docs/product/deep-audit-2026-08-06.md`).
+  (`asTask`) + a **verifier gate** on done (goal-engineering: the implementer
+  must not grade its own homework)
+- `/deliverables` — **deliverables gallery** (Phase 3): real projects with
+  repo/commit/branch-channel stays-alive links, branches + diffs via the daemon
+  (handled gracefully offline)
+- `/roles` — **role system + skill badges** (Phase 4): looper-style role packs
+  (planner/reviewer/fixer/worker) + the public Hyperagent skill library
+  (15 packs, importable via `npm run seed:hyperagent`), assignable per agent
+- `/fleet` — **fleet control** (Phase 5): autonomy tiers (L1/L2/L3 derived from
+  executionMode), security posture, activity volume (budget-guard proxy), and a
+  real sovereign kill switch (stop all active agents)
+- `/audit` — **cross-agent audit** (fleet-engineering): one searchable stream
+  across every agent's activity log — which agent, what tool, what evidence
 - `/agent/[id]` — agent role card + skill badges + **run graph** (control-flow
   map of the activity log with retry loops) + assigned-work goals + live trace
+
+Methodology: looper, loop/fleet/goal/graph-engineering, gstack, qm — see
+`docs/product/deep-audit-2026-08-06.md`.
 
 Data sources (all existing endpoints):
 

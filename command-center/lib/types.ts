@@ -14,6 +14,7 @@ export interface Agent {
   creatorType?: string; // "system" = showcase demo agents (hidden from member rosters)
   projectBound?: boolean;
   projectPath?: string | null;
+  executionMode?: string; // auto | fast | manual (→ autonomy tier L1/L2/L3)
 }
 
 export interface Machine {
@@ -48,6 +49,20 @@ export interface Channel {
   type: string;
   joined?: boolean;
   archivedAt?: string | null;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  repoUrl: string;
+  clonePath?: string | null;
+  defaultBranch?: string | null;
+  channelId?: string | null;
+  status: string; // cloning | ready | error | removed
+  lastError?: string | null;
+  lastCommit?: string | null;
+  lastSyncedAt?: string | null;
+  createdAt?: string;
 }
 
 export interface Skill {

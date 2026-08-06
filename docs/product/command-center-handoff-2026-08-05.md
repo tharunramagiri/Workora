@@ -5,11 +5,12 @@ For: the coding agent (Claude Code / Codex) that will build the Command Center
 Spec source: `/home/tarun/research/workora-command-center-plan.md` (CEO plan)
 Scope: Phase 1 buildable now; Phases 2-5 sequenced after.
 
-**Status update (2026-08-06):** Phase 2 (tasks + briefs loop) is now BUILT and
-verified live: `/tasks` kanban (real tasks, claim + status moves) + brief
-composer (`@mention` routing via `POST /api/messages asTask`). Agent detail
-gains a run graph (graph-engineering) + assigned-work block (goal-engineering).
-See `docs/product/deep-audit-2026-08-06.md` for the methodology audit (looper,
+**Status update (2026-08-06):** Phases 1–5 are now BUILT and verified live
+against the real backend. Phase 2 (tasks + briefs loop with verifier gate),
+Phase 3 (deliverables gallery), Phase 4 (role system + Hyperagent skill import,
+`npm run seed:hyperagent`), Phase 5 (fleet control: autonomy tiers, kill
+switch, budget-guard volume) + cross-agent audit. See
+`docs/product/deep-audit-2026-08-06.md` for the methodology audit (looper,
 loop/fleet/goal/graph-engineering, gstack, qm) mapped to Workora's roadmap.
 
 ---

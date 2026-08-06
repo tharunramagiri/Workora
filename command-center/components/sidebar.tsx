@@ -31,6 +31,10 @@ export default function Sidebar({ agents, activeLabel }: { agents: Agent[]; acti
             <Icon path="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
             Briefs &amp; tasks
           </Link>
+          <Link href="/deliverables" className={`nav-item ${isActive("/deliverables") ? "active" : ""}`}>
+            <Icon path="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            Deliverables
+          </Link>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-2 py-2">
@@ -58,6 +62,18 @@ export default function Sidebar({ agents, activeLabel }: { agents: Agent[]; acti
             <span className="nav-section">Resources</span>
           </div>
           <div className="space-y-0.5">
+            <Link href="/roles" className={`nav-item ${isActive("/roles") ? "active" : ""}`}>
+              <Icon path="M12 21s-7-4.5-9.5-9C1 8 3 4 7.5 4c2.4 0 3.9 1.3 4.5 2.5C12.6 5.3 14.1 4 16.5 4 21 4 23 8 21.5 12 19 16.5 12 21 12 21Z" />
+              Roles &amp; skills
+            </Link>
+            <Link href="/fleet" className={`nav-item ${isActive("/fleet") ? "active" : ""}`}>
+              <Icon path="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" />
+              Fleet
+            </Link>
+            <Link href="/audit" className={`nav-item ${isActive("/audit") ? "active" : ""}`}>
+              <Icon path="M3 3v18h18M7 12l4-4 3 3 5-6" />
+              Audit
+            </Link>
             <a href="https://office.ramagiritharun.in" target="_blank" rel="noreferrer" className="nav-item">
               <Icon path="M12 3v18M3 12h18" />
               Open Workora ↗

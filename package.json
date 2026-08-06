@@ -57,7 +57,8 @@
     "wt:add": "bash scripts/wt-add.sh",
     "wt:rm": "bash scripts/wt-rm.sh",
     "dev:e2e:up": "bash scripts/dev-e2e-up.sh",
-    "dev:e2e:down": "bash scripts/dev-e2e-down.sh"
+    "dev:e2e:down": "bash scripts/dev-e2e-down.sh",
+    "seed:hyperagent": "tsx scripts/seed-hyperagent-skills.ts"
   },
   "dependencies": {
     "busboy": "^1.6.0",

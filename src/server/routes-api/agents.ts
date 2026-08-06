@@ -39,7 +39,7 @@ export async function handleAgents(ctx: ServerCtx): Promise<boolean> {
     // creatorType lets the client distinguish system-seeded showcase agents (creatorType="system") from
     // real members — they stay in the store so #showcase history renders their avatar/name, but are filtered
     // out of member rosters and agent pickers (see web/src/store.tsx visibleAgents).
-    return (sendJson(res, 200, agents.map((a) => ({ id: a.id, name: a.name, displayName: a.displayName, description: a.description, status: a.status, activity: a.activity, model: a.model, runtime: a.runtime, machineId: a.machineId, avatarUrl: a.avatarUrl, creatorType: a.creatorType }))), true);
+    return (sendJson(res, 200, agents.map((a) => ({ id: a.id, name: a.name, displayName: a.displayName, description: a.description, status: a.status, activity: a.activity, model: a.model, runtime: a.runtime, machineId: a.machineId, avatarUrl: a.avatarUrl, creatorType: a.creatorType, executionMode: a.executionMode }))), true);
   }
   if (p === "/api/agents" && method === "POST") {
     if (!await requireCap(serverId, userId, "manageAgents")) return (sendErr(res, 403, "need manageAgents capability"), true);

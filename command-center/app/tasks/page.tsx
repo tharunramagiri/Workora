@@ -36,6 +36,7 @@ export default function TasksPage() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
+  const [gate, setGate] = useState<{ task: Task } | null>(null); // verifier gate before done
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async () => {
@@ -86,6 +87,31 @@ export default function TasksPage() {
       await api(`/api/tasks/${t.id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
       await load();
       notify(`#${t.taskNumber} → ${STATUS_LABEL[status] || status}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  // goal-engineering verifier: done requires a separate check — the implementer
+  // must not grade its own homework. Opening the gate forces a verification
+  // method choice before the status change.
+  const requestMove = (t: Task, status: string) => {
+    if (status === "done") {
+      setGate({ task: t });
+      return;
+    }
+    void move(t, status);
+  };
+
+  const confirmDone = async (method: string) => {
+    if (!gate) return;
+    const t = gate.task;
+    setGate(null);
+    try {
+      await api(`/api/tasks/${t.id}/status`, { method: "PATCH", body: JSON.stringify({ status: "done" }) });
+      await api(`/api/messages/${t.id}/reactions`, { method: "POST", body: JSON.stringify({ emoji: "✅" }) }).catch(() => {});
+      await load();
+      notify(`#${t.taskNumber} → done (verified: ${method})`);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -178,12 +204,12 @@ export default function TasksPage() {
                             Claim
                           </button>
                           {STATUSES.indexOf(st as (typeof STATUSES)[number]) < STATUSES.length - 1 && (
-                            <button className="btn ghost" style={{ padding: "3px 8px", fontSize: 12 }} onClick={() => move(t, STATUSES[STATUSES.indexOf(st as (typeof STATUSES)[number]) + 1])} aria-label={`Move task ${t.taskNumber} forward`}>
+                            <button className="btn ghost" style={{ padding: "3px 8px", fontSize: 12 }} onClick={() => requestMove(t, STATUSES[STATUSES.indexOf(st as (typeof STATUSES)[number]) + 1])} aria-label={`Move task ${t.taskNumber} forward`}>
                               → {STATUS_LABEL[STATUSES[STATUSES.indexOf(st as (typeof STATUSES)[number]) + 1]]}
                             </button>
                           )}
                           {STATUSES.indexOf(st as (typeof STATUSES)[number]) > 0 && (
-                            <button className="btn ghost" style={{ padding: "3px 8px", fontSize: 12 }} onClick={() => move(t, STATUSES[STATUSES.indexOf(st as (typeof STATUSES)[number]) - 1])} aria-label={`Move task ${t.taskNumber} back`}>
+                            <button className="btn ghost" style={{ padding: "3px 8px", fontSize: 12 }} onClick={() => requestMove(t, STATUSES[STATUSES.indexOf(st as (typeof STATUSES)[number]) - 1])} aria-label={`Move task ${t.taskNumber} back`}>
                               ←
                             </button>
                           )}
@@ -209,6 +235,34 @@ export default function TasksPage() {
           onBusy={setBusy}
           busy={busy}
         />
+      )}
+
+      {/* Verifier gate (goal-engineering): done requires a separate check */}
+      {gate && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Verify before done" style={{ background: "rgba(0,0,0,0.7)" }} onClick={() => setGate(null)}>
+          <div className="card w-full max-w-sm p-5" style={{ background: "var(--surface)" }} onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>Verify before done</h2>
+            <p className="mt-1 text-xs" style={{ color: "var(--muted-foreground)" }}>
+              Task <span className="chip accent">#{gate.task.taskNumber}</span> — how was this verified? The implementer must not grade its own homework.
+            </p>
+            <div className="mt-3 flex flex-col gap-1.5">
+              {["tests passed", "reviewed by another agent", "human confirmed", "output checked"].map((m) => (
+                <button
+                  key={m}
+                  className="btn ghost"
+                  style={{ justifyContent: "flex-start", width: "100%" }}
+                  onClick={() => confirmDone(m)}
+                  aria-label={`Mark done, verified: ${m}`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 flex justify-end">
+              <button className="btn ghost" onClick={() => setGate(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {toast && (
