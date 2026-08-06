@@ -5,13 +5,12 @@ For: the coding agent (Claude Code / Codex) that will build the Command Center
 Spec source: `/home/tarun/research/workora-command-center-plan.md` (CEO plan)
 Scope: Phase 1 buildable now; Phases 2-5 sequenced after.
 
-**Status update (same day):** Phase 1 is now BUILT in `command-center/` (Next.js +
-Tailwind, dark theme + `#f97316`, roster grid + live status dots, company pulse,
-activity feed, agent detail + live execution trace) and verified END-TO-END against
-a locally-running backend (real `/api/*` responses, real DB): roster/pulse/feed/
-trace all render, live status changes + task moves append to the feed on poll,
-zero console errors. Typecheck + unit tests + `next build` green. Remaining:
-deploy on Dokploy when the VPS is back (see §7).
+**Status update (2026-08-06):** Phase 2 (tasks + briefs loop) is now BUILT and
+verified live: `/tasks` kanban (real tasks, claim + status moves) + brief
+composer (`@mention` routing via `POST /api/messages asTask`). Agent detail
+gains a run graph (graph-engineering) + assigned-work block (goal-engineering).
+See `docs/product/deep-audit-2026-08-06.md` for the methodology audit (looper,
+loop/fleet/goal/graph-engineering, gstack, qm) mapped to Workora's roadmap.
 
 ---
 

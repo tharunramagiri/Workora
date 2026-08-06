@@ -27,6 +27,10 @@ export default function Sidebar({ agents, activeLabel }: { agents: Agent[]; acti
             <Icon path="M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10" />
             Command Center
           </Link>
+          <Link href="/tasks" className={`nav-item ${isActive("/tasks") ? "active" : ""}`}>
+            <Icon path="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+            Briefs &amp; tasks
+          </Link>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-2 py-2">

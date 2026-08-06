@@ -33,10 +33,16 @@ Sign in at the backend first (JWT is shared via `localStorage["Workora.token"]`)
 The workspace id is bootstrapped from `GET /api/servers` and remembered in
 `localStorage["Workora.ccServerId"]`.
 
-## What Phase 1 covers
+## What Phase 1 + 2 covers
 
 - `/` — command center home: company pulse, live agent roster grid, activity feed
-- `/agent/[id]` — agent role card + skill badges + live execution trace
+- `/tasks` — **briefs & tasks loop**: kanban (todo → in_progress → in_review →
+  done → closed) over the real tasks API (claim + status moves) + a brief
+  composer that creates tasks with `@mention` routing via the real messages API
+  (`asTask`). Built from looper/goal-engineering methodology (see
+  `docs/product/deep-audit-2026-08-06.md`).
+- `/agent/[id]` — agent role card + skill badges + **run graph** (control-flow
+  map of the activity log with retry loops) + assigned-work goals + live trace
 
 Data sources (all existing endpoints):
 

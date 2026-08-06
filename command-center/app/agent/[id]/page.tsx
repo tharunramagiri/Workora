@@ -13,7 +13,8 @@ import {
   dotFor,
   dotLabel,
 } from "../../../lib/api";
-import type { ActivityItem, Agent, Machine, Skill } from "../../../lib/types";
+import type { ActivityItem, Agent, Machine, Skill, Task } from "../../../lib/types";
+import { runMap } from "../../../lib/rungraph";
 import SignInGate from "../../../components/gate";
 import Sidebar from "../../../components/sidebar";
 
@@ -36,20 +37,23 @@ export default function AgentPage({ params }: { params: { id: string } }) {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [trace, setTrace] = useState<ActivityItem[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [lastRefresh, setLastRefresh] = useState(0);
 
   const load = useCallback(async () => {
     const sid = await ensureServerId();
-    const [ag, mc, sk, log] = await Promise.all([
+    const [ag, mc, sk, log, tk] = await Promise.all([
       api<Agent>(`/api/agents/${id}`),
       api<{ machines: Machine[] }>(`/api/servers/${sid}/machines`),
       api<Skill[]>("/api/skills"),
       api<ActivityItem[]>(`/api/agents/${id}/activity-log?limit=80`).catch(() => []),
+      api<{ tasks: Task[] }>("/api/tasks/server").catch(() => ({ tasks: [] })),
     ]);
     setAgent(ag);
     setMachines(Array.isArray(mc?.machines) ? mc.machines : []);
     setSkills(Array.isArray(sk) ? sk : []);
     setTrace(Array.isArray(log) ? log : []);
+    setTasks(Array.isArray(tk?.tasks) ? tk.tasks : []);
     setLastRefresh(Date.now());
   }, [id]);
 
@@ -91,6 +95,8 @@ export default function AgentPage({ params }: { params: { id: string } }) {
   const machine = machines.find((m) => m.id === agent.machineId);
   const agentSkills = skills.filter((s) => s.assignedTo.includes(agent.name));
   const dot = dotFor(agent);
+  const run = runMap(trace);
+  const assignedTasks = tasks.filter((t) => t.taskAssigneeId === agent.id);
 
   return (
     <div className="flex min-h-screen" style={{ background: "var(--background)" }}>
@@ -176,6 +182,61 @@ export default function AgentPage({ params }: { params: { id: string } }) {
             {/* Live execution trace */}
             <section>
               <h2 className="mb-3 text-lg font-medium" style={{ color: "var(--foreground)" }}>Live execution trace</h2>
+
+              {/* Run graph — control flow you can see (graph-engineering) */}
+              {run.nodes.length > 0 && (
+                <div className="card mb-4 p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-medium uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+                      Run map
+                    </span>
+                    <span className="chip">
+                      {run.total} steps{run.retries > 0 ? ` · ${run.retries} retry loop${run.retries > 1 ? "s" : ""}` : ""}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {run.nodes.map((n, i) => (
+                      <span key={n.id} className="flex items-center gap-1.5">
+                        {i > 0 && <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>→</span>}
+                        <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", color: "var(--foreground)" }}>
+                          <span>{n.icon}</span>
+                          <span className="truncate max-w-[140px]">{n.label}</span>
+                          {n.retries > 0 && (
+                            <span className="chip warn" title={`retried ${n.retries}×`}>↻ {n.retries}</span>
+                          )}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Assigned work — the agent's open goals (goal-engineering) */}
+              <div className="card mb-4 p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs font-medium uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+                    Assigned work
+                  </span>
+                  <span className="chip">{assignedTasks.length}</span>
+                </div>
+                {assignedTasks.length === 0 ? (
+                  <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>No tasks assigned to this agent yet.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {assignedTasks.map((t) => (
+                      <li key={t.id} className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm" style={{ background: "rgba(255,255,255,0.03)" }}>
+                        <span className="min-w-0 truncate" style={{ color: "var(--foreground)" }}>
+                          <span className="chip accent mr-2">#{t.taskNumber}</span>{t.content}
+                        </span>
+                        <span className={`chip ${t.taskStatus === "done" ? "ok" : t.taskStatus === "in_review" ? "warn" : ""}`}>
+                          {t.taskStatus || "todo"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
               <div className="card p-0">
                 {trace.length === 0 ? (
                   <p className="p-6 text-sm" style={{ color: "var(--muted-foreground)" }}>

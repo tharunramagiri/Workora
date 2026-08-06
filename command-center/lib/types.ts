@@ -41,6 +41,15 @@ export interface Task {
   createdAt?: string;
 }
 
+export interface Channel {
+  id: string;
+  name: string;
+  description?: string | null;
+  type: string;
+  joined?: boolean;
+  archivedAt?: string | null;
+}
+
 export interface Skill {
   id: string;
   name: string;
